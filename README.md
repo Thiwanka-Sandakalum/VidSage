@@ -46,46 +46,6 @@ The AI module provides several advanced capabilities:
    - Collects user feedback to improve responses
    - Provides evidence for AI-generated answers
 
-## Requirements
-
-- Python 3.8+
-- FFmpeg (for audio processing)
-- Ollama (for local LLM capabilities)
-- Google Gemini API key (for cloud AI capabilities)
-- GPU recommended for faster transcription
-
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/VidSage.git
-   cd VidSage
-   ```
-
-2. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Set your Google API key (for cloud-based features):
-   ```bash
-   export GOOGLE_API_KEY="your_api_key"
-   ```
-
-4. Install Ollama (for local AI features):
-   - Follow instructions at [https://ollama.com/](https://ollama.com/)
-   - Pull the required model: `ollama pull llama3`
-
-## Usage
-
-### Basic Usage
-
-```bash
-python -m cli.main
-```
-
-This will start the CLI interface, where you can enter commands.
-
 ### Process a YouTube Video
 
 ```bash
@@ -116,12 +76,7 @@ VidSage> process https://www.youtube.com/watch?v=VIDEO_ID
    VidSage> summarize --type=bullet
    VidSage> summarize --type=sections
    ```
-
-4. Cloud vs local processing:
-   ```
-   VidSage> summarize --local  # Uses Ollama
-   VidSage> summarize --cloud  # Uses Gemini
-   ```
+  ```
 
 2. Transcribe the video:
    ```

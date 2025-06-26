@@ -12,7 +12,7 @@ from typing import Optional, Union, BinaryIO
 import logging
 
 # TTS library
-from gtts import gTTS
+from gtts import gTTS  # type: ignore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

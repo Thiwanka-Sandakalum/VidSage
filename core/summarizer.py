@@ -43,9 +43,6 @@ class Summarizer:
         """
         self.api_key = api_key or DEFAULT_API_KEY
         
-        # Initialize Gemini
-        genai.configure(api_key=self.api_key)
-        
         # Create Gemini client
         self.gemini_client = genai.Client(api_key=self.api_key)
         
@@ -134,12 +131,12 @@ class Summarizer:
             if stream:
                 # Stream the response
                 response = self.gemini_client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash",
+                    contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=0.2
-                    ),
-                    contents=[prompt]
+                    )
                 )
                 
                 # Collect response chunks
@@ -153,12 +150,12 @@ class Summarizer:
             else:
                 # Generate response at once
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash",
+                    contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=0.2
-                    ),
-                    contents=[prompt]
+                    )
                 )
                 
                 return response.text

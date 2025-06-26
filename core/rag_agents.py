@@ -8,14 +8,13 @@ Includes Query Analyzer, Content Summarizer, and Citation Manager.
 
 import os
 import json
-import time
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple, Union, Callable
+import csv
 import logging
+from pathlib import Path
+from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 
 # LangChain components
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser 
 from langchain.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -34,7 +33,8 @@ DEFAULT_API_KEY = os.environ.get('GOOGLE_API_KEY', 'YOUR_API_KEY')
 
 class QueryAnalyzer:
     """
-    Analyzes and improves user queries for better RAG retrieval
+    Advanced query analyzer that improves user queries for better RAG retrieval
+    and determines response formatting needs
     """
     
     def __init__(self, api_key: Optional[str] = None):
@@ -52,22 +52,63 @@ class QueryAnalyzer:
         # Initialize LLM for query analysis
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
         
-        # Create prompt template for query analysis
+        # Create enhanced prompt template for query analysis and improvement
         self.query_analysis_prompt = ChatPromptTemplate.from_template(
-            """You are an AI assistant that helps improve user questions for retrieval from a video transcript.
-            Your job is to analyze the user's question and rewrite it to be more specific and effective for 
-            retrieving relevant information.
-            
-            Guidelines for rewriting:
-            - Make the question more specific and focused
-            - Include key terms that might appear in the transcript
-            - Avoid overly broad questions
-            - Make sure the rewritten question has the same intent as the original
-            - Do not add information that wasn't in the original question
-            
-            Original Question: {question}
-            
-            Rewritten Question:"""
+            """You are an intelligent query analyzer that optimizes user questions for better information retrieval from video transcripts and determines optimal response formatting.
+
+Your job is to analyze and enhance user questions to make them more effective for retrieving relevant information while identifying the best response structure.
+
+ANALYSIS GUIDELINES:
+- Identify the core intent and information need
+- Determine the response type the user likely wants (list, comparison, explanation, steps, definition, technical, overview)
+- Add relevant keywords that might appear in video transcripts
+- Make questions more specific without changing the original intent
+- Consider different ways the information might be presented in the video
+- Identify if the user wants structured data (tables, lists, comparisons)
+
+RESPONSE TYPE DETECTION:
+- **List**: Questions asking for multiple items, types, examples, benefits, features
+- **Comparison**: Questions with "vs", "difference", "better", "compare", "contrast"
+- **Process/Steps**: Questions with "how to", "steps", "process", "method", "procedure"
+- **Definition**: Questions with "what is", "define", "meaning", "explain"
+- **Technical**: Questions about code, algorithms, technical implementation, systems
+- **Analysis**: Questions asking for deep analysis, insights, interpretation
+- **Overview**: General questions about topics, summaries, main points
+
+ENHANCEMENT STRATEGIES:
+- For vague questions: Add specificity while preserving intent
+- For comparison questions: Ensure all elements are clearly identified and structure for table format
+- For "how-to" questions: Structure to find step-by-step information for numbered lists
+- For definition questions: Structure to find explanatory content with clear definitions
+- For list questions: Structure to find enumerated or categorized information for bullet points
+- For technical questions: Structure to find implementation details, code examples, technical specifications
+
+EXAMPLES:
+Original: "What technologies are mentioned?"
+Enhanced: "What specific technologies, programming languages, frameworks, or technical tools are discussed in this video?"
+Response Type: list
+Structure: bullet_points
+
+Original: "How does X compare to Y?"
+Enhanced: "What are the specific differences, advantages, and disadvantages between X and Y as discussed in the video?"
+Response Type: comparison
+Structure: comparison_table
+
+Original: "How do I implement this?"
+Enhanced: "What are the step-by-step instructions, implementation details, and code examples for implementing this solution?"
+Response Type: process
+Structure: numbered_steps
+
+ORIGINAL QUESTION: {question}
+
+RESPONSE FORMAT (provide exactly this structure):
+Enhanced Question: [Your improved version that will retrieve better information]
+Response Type: [list/comparison/process/definition/technical/analysis/overview]
+Expected Structure: [bullet_points/numbered_steps/comparison_table/definition_block/code_blocks/detailed_analysis/general]
+Key Terms: [comma-separated relevant keywords that might appear in transcript]
+Formatting Hints: [specific suggestions for how the response should be structured]
+
+Provide your analysis:"""
         )
         
         # Create query analysis chain
@@ -92,15 +133,115 @@ class QueryAnalyzer:
         logger.info(f"Analyzing query: {query}")
         
         try:
-            # Generate improved query
-            improved_query = self.query_analysis_chain.invoke({"question": query})
+            # Generate improved query with analysis
+            analysis_result = self.query_analysis_chain.invoke({"question": query})
             
-            logger.info(f"Improved query: {improved_query}")
-            return improved_query
+            # Extract the enhanced question from the analysis
+            lines = analysis_result.strip().split('\n')
+            enhanced_question = query  # fallback to original
+            
+            for line in lines:
+                if line.startswith('Enhanced Question:'):
+                    enhanced_question = line.replace('Enhanced Question:', '').strip()
+                    break
+            
+            logger.info(f"Enhanced query: {enhanced_question}")
+            return enhanced_question if enhanced_question else query
             
         except Exception as e:
             logger.error(f"Error improving query: {str(e)}")
-            return query  # Return original query on error
+            return query
+    
+    def analyze_query_structure(self, query: str) -> Dict[str, Any]:
+        """
+        Analyze query structure for response formatting
+        
+        Args:
+            query: User query to analyze
+            
+        Returns:
+            Dictionary with analysis results for formatting
+        """
+        logger.info(f"Analyzing query structure: {query}")
+        
+        try:
+            # Generate full analysis
+            analysis_result = self.query_analysis_chain.invoke({"question": query})
+            
+            # Parse the analysis result
+            lines = analysis_result.strip().split('\n')
+            analysis = {
+                'enhanced_question': query,
+                'response_type': 'overview',
+                'expected_structure': 'general',
+                'key_terms': [],
+                'formatting_hints': ''
+            }
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith('Enhanced Question:'):
+                    analysis['enhanced_question'] = line.replace('Enhanced Question:', '').strip()
+                elif line.startswith('Response Type:'):
+                    analysis['response_type'] = line.replace('Response Type:', '').strip()
+                elif line.startswith('Expected Structure:'):
+                    analysis['expected_structure'] = line.replace('Expected Structure:', '').strip()
+                elif line.startswith('Key Terms:'):
+                    terms_str = line.replace('Key Terms:', '').strip()
+                    analysis['key_terms'] = [term.strip() for term in terms_str.split(',') if term.strip()]
+                elif line.startswith('Formatting Hints:'):
+                    analysis['formatting_hints'] = line.replace('Formatting Hints:', '').strip()
+            
+            logger.info(f"Query analysis complete: {analysis['response_type']}")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error improving query: {str(e)}")
+            return query
+            
+    def analyze_query_intent(self, query: str) -> Dict[str, Any]:
+        """
+        Analyze query to determine intent and expected response format
+        
+        Args:
+            query: User query to analyze
+            
+        Returns:
+            Dictionary with analysis results
+        """
+        try:
+            analysis_result = self.query_analysis_chain.invoke({"question": query})
+            
+            # Parse the structured response
+            analysis = {
+                "original_query": query,
+                "enhanced_query": query,
+                "response_type": "explanation", 
+                "key_terms": [],
+                "raw_analysis": analysis_result
+            }
+            
+            lines = analysis_result.strip().split('\n')
+            for line in lines:
+                if line.startswith('Enhanced Question:'):
+                    analysis["enhanced_query"] = line.replace('Enhanced Question:', '').strip()
+                elif line.startswith('Expected Response Type:'):
+                    analysis["response_type"] = line.replace('Expected Response Type:', '').strip()
+                elif line.startswith('Key Terms:'):
+                    terms_str = line.replace('Key Terms:', '').strip()
+                    analysis["key_terms"] = [term.strip() for term in terms_str.split(',') if term.strip()]
+            
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error analyzing query intent: {str(e)}")
+            return {
+                "original_query": query,
+                "enhanced_query": query,
+                "response_type": "explanation",
+                "key_terms": [],
+                "error": str(e)
+            }  # Return original query on error
 
 
 class ContentSummarizer:
@@ -117,10 +258,10 @@ class ContentSummarizer:
         """
         self.api_key = api_key or DEFAULT_API_KEY
         
-        # Initialize Gemini client
-        genai.configure(api_key=self.api_key)
+        # Set API key for Gemini
+        os.environ['GOOGLE_API_KEY'] = self.api_key
         
-        # Create model client
+        # Initialize Gemini client
         self.client = genai.Client(api_key=self.api_key)
         
         logger.info("Content Summarizer initialized")
@@ -210,7 +351,7 @@ class ContentSummarizer:
                     contents=[prompt]
                 )
                 
-                return response.text
+                return response.text or "Error: No response generated"
                 
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}")

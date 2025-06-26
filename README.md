@@ -1,6 +1,6 @@
 # VidSage
 
-A powerful CLI-based tool for analyzing YouTube videos using transcription, AI summarization, Retrieval-Augmented Generation (RAG), and text-to-speech capabilities. This tool helps you extract insights from video content with advanced AI features.
+A powerful tool for analyzing YouTube videos using transcription, AI summarization, Retrieval-Augmented Generation (RAG), and text-to-speech capabilities. This tool helps you extract insights from video content with advanced AI features.
 
 ## Features
 
@@ -11,6 +11,31 @@ A powerful CLI-based tool for analyzing YouTube videos using transcription, AI s
 - **Interactive Chat**: Have conversations about video content with context-aware responses
 - **Embeddings**: Create and store vector embeddings for transcript text
 - **Text-to-Speech**: Convert summaries back to audio
+- **Subtitles Processing**: Automatically fetch subtitles when available
+
+## Quick Start with Video RAG Pipeline
+
+The simplest way to use VidSage is through the new end-to-end pipeline:
+
+```bash
+# Process a video and start an interactive Q&A session
+python video_rag_pipeline.py --url "https://www.youtube.com/watch?v=VIDEO_ID" --interactive
+
+# Just process a video without Q&A
+python video_rag_pipeline.py --url "https://www.youtube.com/watch?v=VIDEO_ID" 
+
+# Start the tool and enter URL interactively
+python video_rag_pipeline.py
+```
+
+### Pipeline Features
+
+The video_rag_pipeline.py script provides:
+
+1. **Automatic Subtitle Detection**: Uses subtitles when available instead of transcribing
+2. **Full Automatic Processing**: Downloads, transcribes, and prepares RAG system in one step
+3. **Interactive Q&A**: Ask unlimited questions about the video content
+4. **Citation Support**: Answers include references to the relevant parts of the video
 
 ## Architecture
 

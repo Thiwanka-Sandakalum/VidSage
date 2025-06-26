@@ -78,6 +78,20 @@ class RAGSystem:
         # Metadata for transcript segments
         self.segments: List[TranscriptSegment] = []
         
+        # Initialize enhanced components
+        try:
+            from .rag_agents import QueryAnalyzer, ContentAnalyzer
+            from .response_formatter import ResponseFormatter
+            
+            self.query_analyzer = QueryAnalyzer(api_key=self.api_key)
+            self.content_analyzer = ContentAnalyzer(api_key=self.api_key)
+            self.response_formatter = ResponseFormatter(api_key=self.api_key)
+        except ImportError as e:
+            logger.warning(f"Enhanced components not available: {e}")
+            self.query_analyzer = None
+            self.content_analyzer = None
+            self.response_formatter = None
+        
         logger.info("RAG System initialized")
     
     def process_transcript(self, transcript_text: str, 
@@ -124,26 +138,55 @@ class RAGSystem:
         logger.info(f"Created {len(docs)} document chunks")
         return docs
     
-    def create_vectorstore(self, docs: List[Document]) -> None:
+    def create_vectorstore(self, docs: List[Document], persist_directory: Optional[str] = None) -> None:
         """
-        Create vector store from document chunks
+        Create vector store from document chunks with persistence
         
         Args:
             docs: List of document chunks
+            persist_directory: Optional directory to persist vector store
         """
         logger.info("Creating vector store")
         
-        # Create vector store
-        self.vectorstore = Chroma.from_documents(
-            documents=docs,
-            embedding=self.embedding_model
-        )
+        # Create vector store with persistence
+        if persist_directory:
+            self.vectorstore = Chroma.from_documents(
+                documents=docs,
+                embedding=self.embedding_model,
+                persist_directory=persist_directory
+            )
+        else:
+            # Create in-memory vectorstore
+            self.vectorstore = Chroma.from_documents(
+                documents=docs,
+                embedding=self.embedding_model
+            )
         
         # Create retriever
         self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
         
         logger.info("Vector store and retriever created")
     
+    def load_vectorstore(self, persist_directory: str) -> None:
+        """
+        Load an existing vector store from disk
+        
+        Args:
+            persist_directory: Directory where the vector store is persisted
+        """
+        logger.info(f"Loading vector store from {persist_directory}")
+        
+        # Load vector store
+        self.vectorstore = Chroma(
+            persist_directory=persist_directory,
+            embedding_function=self.embedding_model
+        )
+        
+        # Create retriever
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
+        
+        logger.info("Vector store and retriever loaded from disk")
+        
     def _format_docs(self, docs: List[Document]) -> str:
         """
         Format retrieved documents into a context string
@@ -168,18 +211,65 @@ class RAGSystem:
             
         logger.info("Creating QA chain")
         
-        # Create a prompt template
+        # Create enhanced prompt template for better responses
         qa_prompt = ChatPromptTemplate.from_template(
-            """You are an AI assistant that provides detailed and accurate answers about YouTube videos.
-            Answer the question based only on the following transcript segments from the video:
-            
-            {context}
-            
-            Question: {question}
-            
-            Answer in a clear and conversational style. Include relevant timestamps from the transcript when appropriate. 
-            If the question cannot be answered using the context, indicate that you don't have enough information 
-            from the video transcript to provide a complete answer.
+            """You are VidSage, an advanced AI assistant that provides comprehensive, well-structured answers about YouTube videos.
+
+CONTEXT FROM VIDEO:
+{context}
+
+USER QUESTION: {question}
+
+RESPONSE FORMATTING INSTRUCTIONS:
+Based on the question type, structure your response appropriately:
+
+FOR COMPARISON QUESTIONS (vs, difference, compare, better/worse):
+- Create clear comparisons with specific aspects
+- Use structured format: "**Aspect**: Details for each item"
+- Highlight key differences and similarities
+- Include pros/cons when relevant
+
+FOR LIST QUESTIONS (types, examples, features, benefits):
+- Use clear numbered lists or bullet points
+- Group related items together
+- Provide brief explanations for each item
+- Use consistent formatting
+
+FOR PROCESS/HOW-TO QUESTIONS (steps, process, method, procedure):
+- Break down into clear sequential steps
+- Use numbered format for procedures
+- Include important details and tips for each step
+- Mention any prerequisites or requirements
+
+FOR TECHNICAL QUESTIONS (implementation, code, algorithms):
+- Provide technical details and specifications
+- Include any code examples or technical terms mentioned
+- Explain complex concepts clearly
+- Structure with appropriate headers
+
+FOR DEFINITION QUESTIONS (what is, define, explain):
+- Start with a clear, concise definition
+- Provide detailed explanation with context
+- Include examples when mentioned in the video
+- Explain significance or importance
+
+GENERAL FORMATTING RULES:
+- Use **bold** for key terms and important points
+- Include relevant timestamps [MM:SS] for specific references
+- Use bullet points (•) or numbers (1., 2., 3.) for lists
+- Create logical sections with clear structure
+- Be comprehensive but concise
+- Base ALL information strictly on the provided video transcript segments
+- If information is not available in the transcript, clearly state this limitation
+
+MARKDOWN FORMATTING:
+- Use ## for main section headers
+- Use **text** for emphasis and key terms
+- Use bullet points or numbered lists appropriately
+- Use tables (| Column | Column |) for structured comparisons when beneficial
+- Use `code` formatting for technical terms
+
+Remember: Provide detailed, accurate answers based ONLY on the video transcript segments above. Structure your response to match the question type and user's information needs.
             """
         )
         
@@ -191,7 +281,7 @@ class RAGSystem:
             | StrOutputParser()
         )
         
-        logger.info("QA chain created")
+        logger.info("Enhanced QA chain created")
     
     def answer_question(self, question: str) -> str:
         """

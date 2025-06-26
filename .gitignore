@@ -1,3 +1,6 @@
 .env.example
 venv
 data
+cli/__pycache__/
+utils/__pycache__/
+core/__pycache__/

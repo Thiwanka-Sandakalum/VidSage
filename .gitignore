@@ -1,4 +1,8 @@
 .env.example
 venv
 data
-myenv
+feature/api-int
+cli/__pycache__/
+utils/__pycache__/
+core/__pycache__/
+dev

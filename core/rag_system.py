@@ -80,17 +80,19 @@ class RAGSystem:
         
         # Initialize enhanced components
         try:
-            from .rag_agents import QueryAnalyzer, ContentAnalyzer
+            from .rag_agents import QueryAnalyzer, ContentSummarizer
             from .response_formatter import ResponseFormatter
             
             self.query_analyzer = QueryAnalyzer(api_key=self.api_key)
-            self.content_analyzer = ContentAnalyzer(api_key=self.api_key)
-            self.response_formatter = ResponseFormatter(api_key=self.api_key)
+            self.content_analyzer = None  # Not implemented yet
+            self.response_formatter = ResponseFormatter()  # No api_key parameter needed
+            self.summarizer = ContentSummarizer(api_key=self.api_key)
         except ImportError as e:
             logger.warning(f"Enhanced components not available: {e}")
             self.query_analyzer = None
             self.content_analyzer = None
             self.response_formatter = None
+            self.summarizer = None
         
         logger.info("RAG System initialized")
     
@@ -284,28 +286,12 @@ Remember: Provide detailed, accurate answers based ONLY on the video transcript 
         logger.info("Enhanced QA chain created")
     
     def answer_question(self, question: str) -> str:
-        """
-        Answer a question using the RAG chain
-        
-        Args:
-            question: Question to answer
-            
-        Returns:
-            Generated answer
-        """
+        """Answer questions using RAG"""
         if not self.rag_chain:
-            raise ValueError("QA chain not initialized. Call create_qa_chain first.")
-            
-        logger.info(f"Answering question: {question}")
+            raise ValueError("RAG chain not initialized. Please call create_qa_chain first.")
         
-        try:
-            # Get answer from RAG chain
-            answer = self.rag_chain.invoke(question)
-            return answer
-            
-        except Exception as e:
-            logger.error(f"Error answering question: {str(e)}")
-            return f"Error generating answer: {str(e)}"
+        # Use the pre-created RAG chain
+        return self.rag_chain.invoke(question)
     
     def get_citation_sources(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """

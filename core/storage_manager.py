@@ -11,7 +11,8 @@ import json
 import pickle
 import shutil
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, BinaryIO
+from typing import Dict, Any, Optional, Union, BinaryIO, List
+from datetime import datetime
 import logging
 
 # Configure logging
@@ -38,10 +39,11 @@ class StorageManager:
         self.summary_dir = self.base_dir / "summaries"
         self.embedding_dir = self.base_dir / "embeddings"
         self.vectorstore_dir = self.base_dir / "vectorstores"
+        self.conversations_dir = self.base_dir / "conversations"
         
         # Make sure all directories exist
         for directory in [self.audio_dir, self.transcript_dir, self.summary_dir, 
-                         self.embedding_dir, self.vectorstore_dir]:
+                         self.embedding_dir, self.vectorstore_dir, self.conversations_dir]:
             directory.mkdir(exist_ok=True)
         
         # Current video ID being processed
@@ -415,3 +417,97 @@ class StorageManager:
                 logger.info(f"Removed directory: {dir_path}")
         
         logger.info(f"Cleanup completed for video: {video_id}")
+    
+    def list_processed_videos(self) -> list:
+        """
+        List all processed video IDs (those with info files in base_dir)
+        
+        Returns:
+            List of video IDs
+        """
+        videos = []
+        if self.base_dir.exists():
+            for item in self.base_dir.iterdir():
+                if item.is_dir():
+                    info_file = item / f"{item.name}_info.json"
+                    if info_file.exists():
+                        videos.append(item.name)
+        return videos
+
+    def delete_video(self, video_id: str) -> None:
+        """
+        Delete all files and folders for a specific video
+        
+        Args:
+            video_id: The video ID to delete
+        """
+        self.cleanup(video_id)
+
+    def cleanup_all(self) -> None:
+        """
+        Delete all processed videos and their data
+        """
+        if self.base_dir.exists():
+            for item in self.base_dir.iterdir():
+                if item.is_dir():
+                    self.cleanup(item.name)
+    
+    def save_conversation(self, video_id: str, conversation: List[Dict[str, Union[str, int]]]) -> Path:
+        """
+        Save a Q&A conversation for a video
+        
+        Args:
+            video_id: YouTube video ID
+            conversation: List of dictionaries containing 'question', 'answer', and 'timestamp'
+            
+        Returns:
+            Path to the saved conversation file
+        """
+        # Create video-specific directory if it doesn't exist
+        video_dir = self.conversations_dir / video_id
+        video_dir.mkdir(exist_ok=True)
+        
+        # Save the conversation
+        file_path = video_dir / f"{video_id}_conversation.json"
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(conversation, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Conversation saved to {file_path}")
+        return file_path
+    
+    def load_conversation(self, video_id: Optional[str] = None) -> Optional[List[Dict[str, Union[str, int]]]]:
+        """
+        Load a Q&A conversation for a video
+        
+        Args:
+            video_id: Optional video ID (uses current_video_id if None)
+            
+        Returns:
+            List of dictionaries containing 'question', 'answer', and 'timestamp' if found, None otherwise
+        """
+        video_id = video_id or self.current_video_id
+        file_path = self.conversations_dir / video_id / f"{video_id}_conversation.json"
+        
+        if not file_path.exists():
+            logger.warning(f"Conversation file not found: {file_path}")
+            return None
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
+            conversation = json.load(f)
+            
+        logger.info(f"Conversation loaded from {file_path}")
+        return conversation
+    
+    def has_conversation(self, video_id: Optional[str] = None) -> bool:
+        """
+        Check if a conversation file exists for the video
+        
+        Args:
+            video_id: Optional video ID (uses current_video_id if None)
+            
+        Returns:
+            True if conversation file exists, False otherwise
+        """
+        video_id = video_id or self.current_video_id
+        file_path = self.conversations_dir / video_id / f"{video_id}_conversation.json"
+        return file_path.exists()

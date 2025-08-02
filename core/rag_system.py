@@ -81,17 +81,14 @@ class RAGSystem:
         # Initialize enhanced components
         try:
             from .rag_agents import QueryAnalyzer, ContentSummarizer
-            from .response_formatter import ResponseFormatter
             
             self.query_analyzer = QueryAnalyzer(api_key=self.api_key)
             self.content_analyzer = None  # Not implemented yet
-            self.response_formatter = ResponseFormatter()  # No api_key parameter needed
             self.summarizer = ContentSummarizer(api_key=self.api_key)
         except ImportError as e:
             logger.warning(f"Enhanced components not available: {e}")
             self.query_analyzer = None
             self.content_analyzer = None
-            self.response_formatter = None
             self.summarizer = None
         
         logger.info("RAG System initialized")
@@ -206,91 +203,55 @@ class RAGSystem:
         
         return "\n\n".join(doc_strings)
     
+    def hybrid_retrieve(self, query: str, k: int = 5) -> List[Document]:
+        """
+        Hybrid retrieval: combine vector similarity and keyword search, then rerank by keyword overlap.
+        """
+        if not self.vectorstore:
+            raise ValueError("Vector store not initialized")
+        # Vector search
+        vector_results = self.vectorstore.similarity_search(query, k=k)
+        # Keyword search (simple filter)
+        query_terms = set(query.lower().split())
+        keyword_results = [doc for doc in self.vectorstore.get()['documents'] if any(term in doc.page_content.lower() for term in query_terms)]
+        # Merge and deduplicate
+        all_docs = {id(doc): doc for doc in vector_results}
+        for doc in keyword_results:
+            all_docs[id(doc)] = doc
+        docs = list(all_docs.values())
+        # Rerank by keyword overlap
+        def keyword_overlap(doc):
+            doc_terms = set(doc.page_content.lower().split())
+            return len(query_terms & doc_terms)
+        docs = sorted(docs, key=keyword_overlap, reverse=True)
+        return docs[:k]
+
     def create_qa_chain(self) -> None:
-        """Create the RAG chain for answering questions"""
-        if not self.retriever:
-            raise ValueError("Retriever not initialized. Call create_vectorstore first.")
-            
-        logger.info("Creating QA chain")
-        
-        # Create enhanced prompt template for better responses
+        """Create the RAG chain for answering questions with improved retrieval and prompt."""
+        if not self.vectorstore:
+            raise ValueError("Vector store not initialized. Call create_vectorstore first.")
+        logger.info("Creating QA chain (hybrid retrieval, advanced prompt)")
+        def context_fn(inputs):
+            query = inputs["question"]
+            # Use QueryAnalyzer to improve query
+            improved_query = self.query_analyzer.improve_query(query) if self.query_analyzer else query
+            docs = self.hybrid_retrieve(improved_query, k=6)
+            return self._format_docs(docs)
         qa_prompt = ChatPromptTemplate.from_template(
-            """You are VidSage, an advanced AI assistant that provides comprehensive, well-structured answers about YouTube videos.
-
-CONTEXT FROM VIDEO:
-{context}
-
-USER QUESTION: {question}
-
-RESPONSE FORMATTING INSTRUCTIONS:
-Based on the question type, structure your response appropriately:
-
-FOR COMPARISON QUESTIONS (vs, difference, compare, better/worse):
-- Create clear comparisons with specific aspects
-- Use structured format: "**Aspect**: Details for each item"
-- Highlight key differences and similarities
-- Include pros/cons when relevant
-
-FOR LIST QUESTIONS (types, examples, features, benefits):
-- Use clear numbered lists or bullet points
-- Group related items together
-- Provide brief explanations for each item
-- Use consistent formatting
-
-FOR PROCESS/HOW-TO QUESTIONS (steps, process, method, procedure):
-- Break down into clear sequential steps
-- Use numbered format for procedures
-- Include important details and tips for each step
-- Mention any prerequisites or requirements
-
-FOR TECHNICAL QUESTIONS (implementation, code, algorithms):
-- Provide technical details and specifications
-- Include any code examples or technical terms mentioned
-- Explain complex concepts clearly
-- Structure with appropriate headers
-
-FOR DEFINITION QUESTIONS (what is, define, explain):
-- Start with a clear, concise definition
-- Provide detailed explanation with context
-- Include examples when mentioned in the video
-- Explain significance or importance
-
-GENERAL FORMATTING RULES:
-- Use **bold** for key terms and important points
-- Include relevant timestamps [MM:SS] for specific references
-- Use bullet points (•) or numbers (1., 2., 3.) for lists
-- Create logical sections with clear structure
-- Be comprehensive but concise
-- Base ALL information strictly on the provided video transcript segments
-- If information is not available in the transcript, clearly state this limitation
-
-MARKDOWN FORMATTING:
-- Use ## for main section headers
-- Use **text** for emphasis and key terms
-- Use bullet points or numbered lists appropriately
-- Use tables (| Column | Column |) for structured comparisons when beneficial
-- Use `code` formatting for technical terms
-
-Remember: Provide detailed, accurate answers based ONLY on the video transcript segments above. Structure your response to match the question type and user's information needs.
-            """
+            """You are VidSage, an advanced AI assistant that provides comprehensive, well-structured, and cited answers about YouTube videos.\n\nCONTEXT FROM VIDEO:\n{context}\n\nUSER QUESTION: {question}\n\nRESPONSE INSTRUCTIONS:\n- Use only the provided context.\n- Structure your answer based on question type (list, comparison, process, technical, definition, etc).\n- Use markdown for structure (## headers, **bold**, lists, tables, code).\n- Always cite sources with timestamps (e.g., [03:12]) for each fact.\n- If context is insufficient, say so.\n- Be concise, clear, and accurate.\n"""
         )
-        
-        # Create the RAG chain
         self.rag_chain = (
-            {"context": self.retriever | self._format_docs, "question": RunnablePassthrough()}
-            | qa_prompt
-            | self.llm
-            | StrOutputParser()
+            {"context": context_fn, "question": RunnablePassthrough()} |
+            qa_prompt |
+            self.llm |
+            StrOutputParser()
         )
-        
-        logger.info("Enhanced QA chain created")
-    
+        logger.info("Enhanced QA chain with hybrid retrieval and advanced prompt created")
+
     def answer_question(self, question: str) -> str:
-        """Answer questions using RAG"""
+        """Answer questions using RAG with improved query and retrieval."""
         if not self.rag_chain:
             raise ValueError("RAG chain not initialized. Please call create_qa_chain first.")
-        
-        # Use the pre-created RAG chain
         return self.rag_chain.invoke(question)
     
     def get_citation_sources(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
@@ -322,3 +283,32 @@ Remember: Provide detailed, accurate answers based ONLY on the video transcript 
             citations.append(citation)
         
         return citations
+    
+    def stream_answer(self, question: str):
+        """
+        Stream the answer to a question using Gemini's generate_content_stream.
+        Yields answer chunks as they arrive.
+        """
+        if not self.vectorstore:
+            raise ValueError("Vector store not initialized. Call create_vectorstore first.")
+        # Use QueryAnalyzer to improve query
+        improved_query = self.query_analyzer.improve_query(question) if self.query_analyzer else question
+        docs = self.hybrid_retrieve(improved_query, k=6)
+        context = self._format_docs(docs)
+        # Compose prompt
+        prompt = f"""You are VidSage, an advanced AI assistant that provides comprehensive, well-structured, and cited answers about YouTube videos.\n\nCONTEXT FROM VIDEO:\n{context}\n\nUSER QUESTION: {question}\n\nRESPONSE INSTRUCTIONS:\n- Use only the provided context.\n- Structure your answer based on question type (list, comparison, process, technical, definition, etc).\n- Use markdown for structure (## headers, **bold**, lists, tables, code).\n- Always cite sources with timestamps (e.g., [03:12]) for each fact.\n- If context is insufficient, say so.\n- Be concise, clear, and accurate.\n"""
+        # Stream response from Gemini
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=self.api_key)
+        response = client.models.generate_content_stream(
+            model="gemini-2.5-flash",
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                system_instruction="You are VidSage, an advanced QA assistant.",
+                temperature=0.2
+            )
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text

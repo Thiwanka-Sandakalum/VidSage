@@ -17,3 +17,5 @@ core/__pycache__/summarizer.cpython-310.pyc
 core/__pycache__/transcriber.cpython-310.pyc
 core/__pycache__/tts_generator.cpython-310.pyc
 core/__pycache__/youtube_processor.cpython-310.pyc
+Apps/gui/__pycache__
+Apps/cli/__pycache__

@@ -40,7 +40,8 @@ class YouTubeProcessor:
             default_lang: Default language for subtitles (default: 'en')
             audio_quality: Audio quality in kbps (default: '192')
         """
-        self.data_dir = Path(data_dir) if data_dir else Path('.')
+        # Always use 'data' directory at project root
+        self.data_dir = Path(data_dir) if data_dir else Path(__file__).parent.parent / 'data'
         self.default_lang = default_lang
         self.audio_quality = audio_quality
         
@@ -52,13 +53,11 @@ class YouTubeProcessor:
     def _initialize_directories(self):
         """Create necessary directories for storing data"""
         # Create main data directory
-        os.makedirs(self.data_dir, exist_ok=True)
-        
+        Path(self.data_dir).mkdir(parents=True, exist_ok=True)
         # Create subdirectories
         subdirs = ['audio', 'video', 'subtitles', 'thumbnails', 'info']
         for subdir in subdirs:
-            os.makedirs(self.data_dir / subdir, exist_ok=True)
-            
+            Path(self.data_dir / subdir).mkdir(parents=True, exist_ok=True)
         logger.debug("Directory structure initialized")
     
     @staticmethod
@@ -217,7 +216,7 @@ class YouTubeProcessor:
         video_id = info["id"]
         # Create subdirectory for video under info directory
         video_info_dir = self.data_dir / video_id
-        os.makedirs(video_info_dir, exist_ok=True)
+        video_info_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = video_info_dir / f"{video_id}_info.json"
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -247,10 +246,10 @@ class YouTubeProcessor:
             # Create output directory if needed
             if output_path:
                 output_path = Path(output_path)
-                os.makedirs(output_path.parent, exist_ok=True)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
             else:
                 output_path = self.data_dir / "audio" / f"{video_id}.{audio_format}"
-                os.makedirs(output_path.parent, exist_ok=True)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Use temp directory for initial download
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -402,7 +401,7 @@ class YouTubeProcessor:
             if output_dir is None:
                 output_dir = self.data_dir / "subtitles"
             output_dir = Path(output_dir)
-            os.makedirs(output_dir, exist_ok=True)
+            output_dir.mkdir(parents=True, exist_ok=True)
             
             # Default language list
             if langs is None:
@@ -610,8 +609,7 @@ class YouTubeProcessor:
                 output_path = self.data_dir / "video" / f"{video_id}.mp4"
             else:
                 output_path = Path(output_path)
-            
-            os.makedirs(output_path.parent, exist_ok=True)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Configure format selection based on resolution and audio preference
             format_selector = f'bestvideo[height<={resolution[:-1]}]+bestaudio/best[height<={resolution[:-1]}]' if with_audio else f'bestvideo[height<={resolution[:-1]}]'
@@ -667,8 +665,7 @@ class YouTubeProcessor:
                 output_path = self.data_dir / "thumbnails" / f"{video_id}.jpg"
             else:
                 output_path = Path(output_path)
-            
-            os.makedirs(output_path.parent, exist_ok=True)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Download the thumbnail
             response = requests.get(thumbnail_url, stream=True, timeout=10)
@@ -706,8 +703,7 @@ class YouTubeProcessor:
                 output_dir = self.data_dir
             else:
                 output_dir = Path(output_dir)
-                
-            os.makedirs(output_dir, exist_ok=True)
+            output_dir.mkdir(parents=True, exist_ok=True)
             
             # Get playlist information
             ydl_opts = {
@@ -912,7 +908,7 @@ class YouTubeProcessor:
             if output_dir is None:
                 output_dir = self.data_dir / "subtitles"
             output_dir = Path(output_dir)
-            os.makedirs(output_dir, exist_ok=True)
+            output_dir.mkdir(parents=True, exist_ok=True)
             
             # Default language list
             if langs is None:

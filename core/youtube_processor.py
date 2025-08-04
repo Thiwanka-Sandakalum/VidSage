@@ -215,7 +215,7 @@ class YouTubeProcessor:
         """Save video information as JSON file"""
         video_id = info["id"]
         # Create subdirectory for video under info directory
-        video_info_dir = self.data_dir / video_id
+        video_info_dir = self.data_dir / "info" / video_id
         video_info_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = video_info_dir / f"{video_id}_info.json"

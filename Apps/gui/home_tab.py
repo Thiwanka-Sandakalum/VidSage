@@ -1,25 +1,28 @@
 # HomeTab for YT Insight AI
+from typing import Optional, Dict, Any, TypeVar, cast
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTabWidget, QProgressBar, QFrame, QTextEdit, QGroupBox, QMessageBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
+    QTabWidget, QProgressBar, QTextEdit, QGroupBox, QMessageBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor
-from core.youtube_processor import YouTubeProcessor
-from core.summarizer import Summarizer
-from core.rag_system import RAGSystem
-import traceback
+from PyQt6.QtGui import QTextCursor, QPixmap
+from workers import WorkerThread
 import re
+import os
 from markdown import markdown
+
+ResultDict = Dict[str, Any]
 
 class HomeTab(QWidget):
     def __init__(self):
+        """Initialize the HomeTab"""
         super().__init__()
         self._build_ui()
         self.analyze_btn.clicked.connect(self.on_analyze_clicked)
-        self.youtube_processor = YouTubeProcessor(data_dir="Apps/gui/data")
-        self.summarizer = Summarizer()
-        self.rag_system = RAGSystem()
         self.ask_btn.clicked.connect(self.on_ask_clicked)
+        self.summary_btn.clicked.connect(self.on_summary_clicked)
+        self.current_worker: Optional[WorkerThread] = None
+        self.current_video_id: Optional[str] = None
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -55,12 +58,17 @@ class HomeTab(QWidget):
         layout.addWidget(self.info_card)
         self.info_card.setVisible(False)
 
-        # Progress Bar
+        # Progress Bar and Status
+        progress_layout = QVBoxLayout()
         self.progress = QProgressBar()
         self.progress.setVisible(False)
-        layout.addWidget(self.progress)
+        self.status_label = QLabel()
+        self.status_label.setWordWrap(True)
+        progress_layout.addWidget(self.progress)
+        progress_layout.addWidget(self.status_label)
+        layout.addLayout(progress_layout)
 
-        # Summary Button (after progress bar)
+        # Summary Button
         self.summary_btn = QPushButton("Generate Summary")
         self.summary_btn.setEnabled(False)
         self.summary_btn.clicked.connect(self.on_summary_clicked)
@@ -81,21 +89,6 @@ class HomeTab(QWidget):
         self.summary_box.setReadOnly(True)
         self.summary_box.setPlaceholderText("Summary will appear here…")
         summary_layout.addWidget(self.summary_box)
-        # # Highlights
-        # self.highlights = QTextEdit()
-        # self.highlights.setReadOnly(True)
-        # self.highlights.setPlaceholderText("Key takeaways…")
-        # summary_layout.addWidget(self.highlights)
-        # # Find in Text
-        # find_row = QHBoxLayout()
-        # self.find_input = QLineEdit()
-        # self.find_input.setPlaceholderText("Find in summary…")
-        # self.copy_btn = QPushButton("Copy")
-        # self.export_btn = QPushButton("Export")
-        # find_row.addWidget(self.find_input)
-        # find_row.addWidget(self.copy_btn)
-        # find_row.addWidget(self.export_btn)
-        # summary_layout.addLayout(find_row)
 
         # --- Q&A Tab Layout ---
         qa_layout = QVBoxLayout(self.qa_tab)
@@ -104,6 +97,7 @@ class HomeTab(QWidget):
         self.chat_area.setPlaceholderText("Chat about the video…")
         self.chat_area.setAcceptRichText(True)
         qa_layout.addWidget(self.chat_area)
+        
         ask_row = QHBoxLayout()
         self.question_input = QLineEdit()
         self.question_input.setPlaceholderText("Ask a question…")
@@ -111,43 +105,21 @@ class HomeTab(QWidget):
         ask_row.addWidget(self.question_input)
         ask_row.addWidget(self.ask_btn)
         qa_layout.addLayout(ask_row)
-        # Loading spinner/status
-        self.qa_status = QLabel()
-        qa_layout.addWidget(self.qa_status)
-        # Suggested Qs (optional, placeholder)
-        self.suggested_qs = QLabel("Suggested: What is the main topic?")
-        qa_layout.addWidget(self.suggested_qs)
-        self.suggested_qs.setVisible(False)
 
-    def clean_and_format_answer(self, answer: str) -> str:
-        # Remove timestamps like [00:00], [0:00], [12:34]
-        answer = re.sub(r'\[\d{1,2}:\d{2}\]', '', answer)
-        # Convert markdown to HTML
-        html = markdown(answer, extensions=['extra', 'sane_lists'])
-        # Use .qa-card class for styling (no inline CSS)
-        styled = f"""
-        <div class='qa-card ai-turn'>
-            <div>{html}</div>
-        </div>
-        """
-        return styled
+    def _on_progress(self, value: int, status: str) -> None:
+        """Update progress bar and status label"""
+        self.progress.setValue(value)
+        self.status_label.setText(status)
+        self.status_label.repaint()
 
-    def on_analyze_clicked(self):
-        from PyQt6.QtGui import QPixmap
-        import os
-        url = self.url_input.text().strip()
-        if not url:
-            QMessageBox.warning(self, "Input Error", "Please enter a YouTube URL.")
-            return
-        self.progress.setVisible(True)
-        self.progress.setValue(10)
-        try:
-            # Fetch video info (sync for now, ideally move to QThread for real app)
-            info = self.youtube_processor.get_video_info(url)
-            self.progress.setValue(60)
-            # Update video info card
+    def _on_analyze_finished(self, result: ResultDict) -> None:
+        """Handle completed video analysis"""
+        if result["type"] == "analyze":
+            info = result["data"]
+            self.current_video_id = str(info.get('id', ''))
+            
+            # Update video info
             self.title.setText(f"Title: {info.get('title', '-')}")
-            # Show duration in minutes
             duration_sec = info.get('length', '-')
             if isinstance(duration_sec, int):
                 mins = duration_sec // 60
@@ -156,83 +128,178 @@ class HomeTab(QWidget):
             else:
                 self.duration.setText(f"Duration: {duration_sec}")
             self.channel.setText(f"Channel: {info.get('author', '-')}")
-            # Download and show thumbnail
-            thumb_path = None
-            try:
-                thumb_path, _ = self.youtube_processor.download_thumbnail(url)
-            except Exception as e:
-                thumb_path = None
-            if thumb_path and os.path.exists(thumb_path):
+
+            # Try to load thumbnail
+            thumb_path = os.path.join("Apps/gui/data/thumbnails", f"{self.current_video_id}.jpg")
+            if os.path.exists(thumb_path):
                 pixmap = QPixmap(thumb_path)
-                self.thumbnail.setPixmap(pixmap)
-                self.thumbnail.setScaledContents(True)
+                self.thumbnail.setPixmap(pixmap.scaled(
+                    self.thumbnail.size(), 
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                ))
             else:
                 self.thumbnail.clear()
+
+            # Show UI elements
             self.info_card.setVisible(True)
             self.result_tabs.setVisible(True)
-            self.progress.setValue(100)
             self.summary_btn.setEnabled(True)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to fetch video info:\n{str(e)}\n{traceback.format_exc()}")
-            self.info_card.setVisible(False)
-            self.result_tabs.setVisible(False)
-            self.summary_btn.setEnabled(False)
-        self.progress.setVisible(False)
 
-    def on_summary_clicked(self):
-        url = self.url_input.text().strip()
-        if not url:
-            QMessageBox.warning(self, "Input Error", "Please enter a YouTube URL.")
-            return
-        self.progress.setVisible(True)
-        self.progress.setValue(20)
-        try:
-            # Get transcript (for demo, use subtitles if available)
-            transcript = self.youtube_processor.get_transcript_from_subtitles(url)
-            if not transcript:
-                raise Exception("No transcript/subtitles found for this video.")
-            self.progress.setValue(60)
-            summary = self.summarizer.summarize(transcript, summary_type="default", engine="gemini")
-            self.progress.setValue(90)
-            self.summary_box.setPlainText(summary)
+        # Reset UI state
+        self._reset_ui_state()
+
+    def _on_summary_finished(self, result: ResultDict) -> None:
+        """Handle completed summarization"""
+        if result["type"] == "summarize":
+            summary = str(result["data"])
+            self.summary_box.setMarkdown(summary)
             self.result_tabs.setCurrentWidget(self.summary_tab)
-            self.progress.setValue(100)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to generate summary:\n{str(e)}\n{traceback.format_exc()}")
-        self.progress.setVisible(False)
+        self._reset_ui_state()
 
-    def on_ask_clicked(self):
-        url = self.url_input.text().strip()
-        question = self.question_input.text().strip()
-        if not url or not question:
-            QMessageBox.warning(self, "Input Error", "Please enter a YouTube URL and your question.")
-            return
-        self.qa_status.setText("Thinking...")
-        self.qa_status.repaint()
-        try:
-            transcript = self.youtube_processor.get_transcript_from_subtitles(url)
-            if not transcript:
-                raise Exception("No transcript/subtitles found for this video.")
-            video_id = self.youtube_processor.extract_video_id(url)
-            persist_dir = f"Apps/cli/data/vectorstores/{video_id}/chroma_db"
-            docs = self.rag_system.process_transcript(transcript)
-            self.rag_system.create_vectorstore(docs, persist_directory=persist_dir)
-            self.rag_system.create_qa_chain()
-            answer = self.rag_system.answer_question(question)
-            # Use .qa-card class for user and AI turns
+    def _on_ask_finished(self, result: ResultDict) -> None:
+        """Handle completed Q&A with consistent styling"""
+        if result["type"] == "ask":
+            answer = str(result["data"])
+            question = self.question_input.text()
+            
+            # Format Q&A with consistent styling
             user_html = (
-                "<div class='qa-card user-turn' style='margin-bottom:2px;'><span style='color:#007acc;font-weight:bold;'>You:</span> "
-                f"<span style='color:#23272f;font-size:1.08em;'>{question}</span></div>"
+                "<div class='qa-card user-turn' style='margin-bottom:2px;'>"
+                "<span style='color:#007acc;font-weight:bold;'>You:</span> "
+                f"<span style='color:#23272f;font-size:1.08em;'>{question}</span>"
+                "</div>"
             )
             ai_html = self.clean_and_format_answer(answer)
+            
+            # Add to chat with proper margins
             self.chat_area.append(
-                f"<div style='margin:0 0 18px 0; padding:0;'>"
+                "<div style='margin:0 0 18px 0; padding:0;'>"
                 f"{user_html}"
                 f"{ai_html}"
-                f"</div>"
+                "</div>"
             )
             self.chat_area.moveCursor(QTextCursor.MoveOperation.End)
             self.question_input.clear()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to answer question:\n{str(e)}\n{traceback.format_exc()}")
-        self.qa_status.setText("")
+            
+        self._reset_ui_state()
+
+    def _on_worker_error(self, error_msg: str) -> None:
+        """Handle worker errors"""
+        QMessageBox.critical(self, "Error", f"An error occurred: {error_msg}")
+        self._reset_ui_state()
+
+    def _reset_ui_state(self) -> None:
+        """Reset UI elements to their default state"""
+        self.analyze_btn.setEnabled(True)
+        self.url_input.setEnabled(True)
+        self.ask_btn.setEnabled(True)
+        self.question_input.setEnabled(True)
+        self.summary_btn.setEnabled(True)
+        self.progress.setVisible(False)
+        self.status_label.clear()
+
+    def clean_and_format_answer(self, answer: str) -> str:
+        """Clean and format answer text with consistent styling
+        
+        Args:
+            answer: Raw answer text
+            
+        Returns:
+            Formatted HTML string with qa-card styling
+        """
+        # Remove timestamps
+        answer = re.sub(r'\[\d{1,2}:\d{2}\]', '', answer)
+        # Convert markdown to HTML
+        html = markdown(answer, extensions=['extra', 'sane_lists'])
+        # Format with consistent qa-card styling
+        return (
+            "<div class='qa-card ai-turn' style='margin-bottom:2px;'>"
+            "<span style='color:#10a37f;font-weight:bold;'>Assistant:</span> "
+            f"<span style='color:#23272f;font-size:1.08em;'>{html}</span>"
+            "</div>"
+        )
+
+    def on_analyze_clicked(self) -> None:
+        """Handle analyze button click"""
+        url = self.url_input.text().strip()
+        if not url:
+            QMessageBox.warning(self, "Error", "Please enter a YouTube URL")
+            return
+
+        # Stop any running worker
+        if self.current_worker and self.current_worker.isRunning():
+            self.current_worker.stop()
+            self.current_worker.wait()
+
+        # Disable UI elements
+        self.analyze_btn.setEnabled(False)
+        self.url_input.setEnabled(False)
+        self.summary_btn.setEnabled(False)
+        self.progress.setVisible(True)
+        self.progress.setValue(0)
+
+        # Create and start worker thread
+        self.current_worker = WorkerThread(task_type="analyze", url=url)
+        self.current_worker.finished.connect(self._on_analyze_finished)
+        self.current_worker.error.connect(self._on_worker_error)
+        self.current_worker.progress.connect(self._on_progress)
+        self.current_worker.start()
+
+    def on_summary_clicked(self) -> None:
+        """Handle summary button click"""
+        if not self.current_video_id:
+            return
+
+        # Stop any running worker
+        if self.current_worker and self.current_worker.isRunning():
+            self.current_worker.stop()
+            self.current_worker.wait()
+
+        # Disable UI elements
+        self.summary_btn.setEnabled(False)
+        self.progress.setVisible(True)
+        self.progress.setValue(0)
+
+        # Create and start worker thread
+        self.current_worker = WorkerThread(
+            task_type="summarize",
+            url=self.url_input.text().strip()
+        )
+        self.current_worker.finished.connect(self._on_summary_finished)
+        self.current_worker.error.connect(self._on_worker_error)
+        self.current_worker.progress.connect(self._on_progress)
+        self.current_worker.start()
+
+    def on_ask_clicked(self) -> None:
+        """Handle ask button click"""
+        if not self.current_video_id:
+            QMessageBox.warning(self, "Error", "Please analyze a video first")
+            return
+
+        question = self.question_input.text().strip()
+        if not question:
+            QMessageBox.warning(self, "Error", "Please enter a question")
+            return
+
+        # Stop any running worker
+        if self.current_worker and self.current_worker.isRunning():
+            self.current_worker.stop()
+            self.current_worker.wait()
+
+        # Disable UI elements
+        self.ask_btn.setEnabled(False)
+        self.question_input.setEnabled(False)
+        self.progress.setVisible(True)
+        self.progress.setValue(0)
+
+        # Create and start worker thread
+        self.current_worker = WorkerThread(
+            task_type="ask",
+            url=self.url_input.text().strip(),
+            question=question
+        )
+        self.current_worker.finished.connect(self._on_ask_finished)
+        self.current_worker.error.connect(self._on_worker_error)
+        self.current_worker.progress.connect(self._on_progress)
+        self.current_worker.start()

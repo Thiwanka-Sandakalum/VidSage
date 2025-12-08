@@ -1,0 +1,106 @@
+/* Dark QSS stylesheet for YT Insight GUI */
+QWidget {
+    font-family: 'Segoe UI', 'Roboto', 'Inter', sans-serif;
+    font-size: 15px;
+    background: #181c20;
+    color: #e0e6ef;
+}
+QMainWindow {
+    background: #181c20;
+}
+QPushButton {
+    background: #232a32;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: 500;
+    color: #e0e6ef;
+    transition: background 0.2s;
+}
+QPushButton:hover {
+    background: #2a3440;
+}
+QPushButton:checked {
+    background: #1976d2;
+    color: #fff;
+}
+QLineEdit, QTextEdit {
+    background: #232a32;
+    border: 1px solid #2a3440;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #e0e6ef;
+}
+QListWidget {
+    background: #232a32;
+    border: 1px solid #2a3440;
+    border-radius: 6px;
+    color: #e0e6ef;
+}
+QStatusBar {
+    background: #232a32;
+    border-top: 1px solid #2a3440;
+    color: #1976d2;
+    font-weight: 500;
+}
+QSplitter::handle {
+    background: #2a3440;
+}
+
+/* HTML Q&A and Summary Card Styles for QTextBrowser */
+
+.qa-card, .summary-card {
+    background: #232a32;
+    border: 1px solid #2a3440;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    color: #e0e6ef;
+    box-shadow: 0 2px 8px rgba(30,40,90,0.10);
+}
+.qa-card.user-turn {
+    background: #22334a;
+    border-color: #1976d2;
+}
+.qa-card.ai-turn {
+    background: #232a32;
+    border-color: #2a3440;
+}
+.summary-card {
+    background: #1e2a1e;
+    border-color: #3a5c3a;
+}
+.qa-card h1, .qa-card h2, .qa-card h3, .summary-card h1, .summary-card h2, .summary-card h3 {
+    color: #90caf9;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+.qa-card ul, .qa-card ol, .summary-card ul, .summary-card ol {
+    margin-left: 20px;
+}
+.qa-card code, .qa-card pre, .summary-card code, .summary-card pre {
+    background: #181c20;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Fira Mono', monospace;
+    color: #90caf9;
+}
+.qa-card table, .summary-card table {
+    border-collapse: collapse;
+    margin: 10px 0;
+    width: 100%;
+}
+.qa-card th, .qa-card td, .summary-card th, .summary-card td {
+    border: 1px solid #2a3440;
+    padding: 6px 10px;
+    text-align: left;
+}
+.qa-card blockquote, .summary-card blockquote {
+    border-left: 4px solid #1976d2;
+    background: #232a32;
+    margin: 10px 0;
+    padding: 8px 16px;
+    color: #b0bec5;
+    font-style: italic;
+}

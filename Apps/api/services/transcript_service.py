@@ -1,7 +1,7 @@
 
 import re
-import json
 import tempfile
+import os
 from pathlib import Path
 from typing import List, Dict, Optional
 import yt_dlp
@@ -41,7 +41,7 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             
-            # Configure yt-dlp to download subtitles
+            # Configure yt-dlp to download subtitles with anti-bot measures
             ydl_opts = {
                 'skip_download': True,
                 'writesubtitles': True,
@@ -52,12 +52,38 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
                 'quiet': True,
                 'no_warnings': True,
                 'ignoreerrors': False,
+                # Anti-bot configuration
                 'extractor_args': {
                     'youtube': {
-                        'player_client': ['default']
+                        'player_client': ['android', 'web'],
+                        'player_skip': ['webpage', 'configs'],
                     }
-                }
+                },
+                # Additional headers to appear more like a real browser
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-us,en;q=0.5',
+                    'Sec-Fetch-Mode': 'navigate',
+                },
+                # Use IPv4 to avoid potential IPv6 issues
+                'force_ipv4': True,
+                # Add a small sleep to avoid rate limiting
+                'sleep_interval': 1,
+                'max_sleep_interval': 3,
             }
+            
+            # Check for cookie file from environment variable
+            cookie_file = os.environ.get('YOUTUBE_COOKIES_FILE')
+            if cookie_file and os.path.exists(cookie_file):
+                logger.info(f"Using cookie file: {cookie_file}")
+                ydl_opts['cookiefile'] = cookie_file
+            
+            # Check for cookies from browser option
+            cookies_from_browser = os.environ.get('YOUTUBE_COOKIES_BROWSER')
+            if cookies_from_browser:
+                logger.info(f"Using cookies from browser: {cookies_from_browser}")
+                ydl_opts['cookiesfrombrowser'] = (cookies_from_browser,)
             
             # Get video info and download subtitles
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

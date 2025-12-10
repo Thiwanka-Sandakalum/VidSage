@@ -6,13 +6,21 @@ __pycache__/
 .Python
 env/
 venv/
+antenv/
 ENV/
 build/
 dist/
 *.egg-info/
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
 # Environment variables
 .env
+.env.local
 
 # IDE
 .vscode/
@@ -23,3 +31,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Deployment
+*.zip
+*.tar.gz
+TEST_SUMMARY.md

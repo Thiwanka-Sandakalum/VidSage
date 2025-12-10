@@ -24,7 +24,7 @@ EMBEDDING_TASK_TYPE: Literal[
 ] = "RETRIEVAL_DOCUMENT"
 
 # LLM Configuration for RAG Generation
-LLM_MODEL = "gemini-2.5-pro"  # Fast and cost-effective
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-pro")  # Fast and cost-effective
 LLM_TEMPERATURE = 0.3  # Low temperature for factual responses
 LLM_MAX_OUTPUT_TOKENS = 1024  # Maximum response length
 MAX_CONTEXT_CHUNKS = 5  # Number of chunks to use as context

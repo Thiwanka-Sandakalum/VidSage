@@ -40,6 +40,13 @@ jobs:
           path: |
             .
             !antenv/
+            !.git/
+            !.github/
+            !__pycache__/
+            !*.pyc
+            !.pytest_cache/
+            !.vscode/
+            !tests/
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:
@@ -49,6 +56,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 30
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -72,3 +80,13 @@ jobs:
         with:
           app-name: "vidsage-backend"
           slot-name: "Production"
+          startup-command: "gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600"
+
+      - name: Check deployment status
+        if: always()
+        run: |
+          echo "Deployment status: ${{ steps.deploy-to-webapp.outcome }}"
+          if [ "${{ steps.deploy-to-webapp.outcome }}" != "success" ]; then
+            echo "Deployment failed or was cancelled"
+            exit 1
+          fi

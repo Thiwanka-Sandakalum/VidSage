@@ -24,13 +24,35 @@ jobs:
         with:
           python-version: "3.10"
 
-      # 🛠️ Local Build Section (Optional)
-      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Free up GitHub Actions runner disk space
         run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "Disk space after cleanup:"
+          df -h
+
+      # 🛠️ Local Build Section (Disabled for faster deployment)
+      # Azure Oryx handles dependency installation during deployment, so we skip local build validation
+      # to save time and disk space. If you need to validate dependencies before deployment, uncomment below:
+
+      # - name: Create and Start virtual environment and Install dependencies
+      #   run: |
+      #     python -m venv antenv
+      #     source antenv/bin/activate
+      #     pip install -r requirements.txt
 
       # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
       - name: Upload artifact for deployment jobs
@@ -39,7 +61,6 @@ jobs:
           name: python-app
           path: |
             .
-            !antenv/
             !.git/
             !.github/
             !__pycache__/
@@ -47,6 +68,10 @@ jobs:
             !.pytest_cache/
             !.vscode/
             !tests/
+            !antenv/
+            !*.egg-info/
+            !.coverage
+            !htmlcov/
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:

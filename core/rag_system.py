@@ -22,6 +22,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Load environment variables
 load_dotenv()
@@ -55,20 +56,32 @@ class RAGSystem:
         """
         self.api_key = api_key or DEFAULT_API_KEY
         
-        # Set API key for Gemini
+        # Set API key for Google AI
         os.environ['GOOGLE_API_KEY'] = self.api_key
         
-        # Initialize embeddings model
-        self.embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        # Initialize embeddings model with fallback to local model
+        try:
+            self.embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+            self.using_local_embeddings = False
+            logger.info("Using Google AI embeddings")
+        except Exception as e:
+            logger.warning(f"Google AI embeddings failed ({e}), falling back to local embeddings")
+            self.embedding_model = HuggingFaceEmbeddings(
+                model_name="all-MiniLM-L6-v2",  # Small, fast model
+                model_kwargs={'device': 'cpu'},  # Use CPU to avoid GPU issues
+                encode_kwargs={'normalize_embeddings': True}
+            )
+            self.using_local_embeddings = True
+            logger.info("Using local HuggingFace embeddings")
         
-        # Text splitter for chunking documents
+        # Text splitter for chunking documents (reduced size to minimize API calls)
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=100
+            chunk_size=200,
+            chunk_overlap=30
         )
         
         # Initialize LLM
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0.2)
         
         # Vectorstore and retriever
         self.vectorstore = None
@@ -114,6 +127,12 @@ class RAGSystem:
         # Split text into chunks
         docs = self.text_splitter.create_documents([transcript_text])
         
+        # Limit number of chunks to avoid quota issues (max 20 chunks)
+        max_chunks = 20
+        if len(docs) > max_chunks:
+            logger.warning(f"Limiting chunks from {len(docs)} to {max_chunks} to avoid API quota issues")
+            docs = docs[:max_chunks]
+        
         # Add metadata to documents if segments are available
         if segments:
             # Match chunks to segments by finding overlapping text
@@ -147,22 +166,48 @@ class RAGSystem:
         """
         logger.info("Creating vector store")
         
-        # Create vector store with persistence
-        if persist_directory:
-            self.vectorstore = Chroma.from_documents(
-                documents=docs,
-                embedding=self.embedding_model,
-                persist_directory=persist_directory
-            )
-        else:
-            # Create in-memory vectorstore
-            self.vectorstore = Chroma.from_documents(
-                documents=docs,
-                embedding=self.embedding_model
-            )
+        try:
+            # Create vector store with persistence
+            if persist_directory:
+                self.vectorstore = Chroma.from_documents(
+                    documents=docs,
+                    embedding=self.embedding_model,
+                    persist_directory=persist_directory
+                )
+            else:
+                # Create in-memory vectorstore
+                self.vectorstore = Chroma.from_documents(
+                    documents=docs,
+                    embedding=self.embedding_model
+                )
+        except Exception as e:
+            if "quota" in str(e).lower() or "429" in str(e):
+                logger.warning("Google AI quota exceeded, switching to local embeddings")
+                self.embedding_model = HuggingFaceEmbeddings(
+                    model_name="all-MiniLM-L6-v2",
+                    model_kwargs={'device': 'cpu'},
+                    encode_kwargs={'normalize_embeddings': True}
+                )
+                self.using_local_embeddings = True
+                
+                # Retry with local embeddings
+                if persist_directory:
+                    self.vectorstore = Chroma.from_documents(
+                        documents=docs,
+                        embedding=self.embedding_model,
+                        persist_directory=persist_directory
+                    )
+                else:
+                    self.vectorstore = Chroma.from_documents(
+                        documents=docs,
+                        embedding=self.embedding_model
+                    )
+                logger.info("Successfully created vectorstore with local embeddings")
+            else:
+                raise e
         
-        # Create retriever
-        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
+        # Create retriever (reduced k to minimize context and API usage)
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
         
         logger.info("Vector store and retriever created")
     
@@ -181,8 +226,8 @@ class RAGSystem:
             embedding_function=self.embedding_model
         )
         
-        # Create retriever
-        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
+        # Create retriever (reduced k to minimize context and API usage)
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
         
         logger.info("Vector store and retriever loaded from disk")
         
@@ -269,18 +314,34 @@ class RAGSystem:
             raise ValueError("Vector store not initialized")
             
         # Get relevant documents
-        results = self.vectorstore.similarity_search_with_relevance_scores(query, k=top_k)
+        try:
+            results = self.vectorstore.similarity_search_with_relevance_scores(query, k=top_k)
+        except Exception as e:
+            logger.warning(f"Similarity search with scores failed: {e}, falling back to basic search")
+            docs = self.vectorstore.similarity_search(query, k=top_k)
+            results = [(doc, 1.0) for doc in docs]  # Default relevance score
         
         # Format citations
         citations = []
-        for doc, score in results:
-            citation = {
-                "text": doc.page_content,
-                "timestamp": doc.metadata.get("timestamp", "00:00"),
-                "start_time": doc.metadata.get("start_time", 0),
-                "relevance": float(score)
-            }
-            citations.append(citation)
+        for item in results:
+            try:
+                # Handle both tuple (doc, score) and single doc formats
+                if isinstance(item, tuple) and len(item) == 2:
+                    doc, score = item
+                else:
+                    doc = item
+                    score = 1.0
+                    
+                citation = {
+                    "text": doc.page_content,
+                    "timestamp": doc.metadata.get("timestamp", "00:00"),
+                    "start_time": doc.metadata.get("start_time", 0),
+                    "relevance": float(score)
+                }
+                citations.append(citation)
+            except Exception as e:
+                logger.error(f"Error processing citation item {item}: {e}")
+                continue
         
         return citations
     
@@ -302,7 +363,7 @@ class RAGSystem:
         from google.genai import types
         client = genai.Client(api_key=self.api_key)
         response = client.models.generate_content_stream(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-lite",
             contents=[prompt],
             config=types.GenerateContentConfig(
                 system_instruction="You are VidSage, an advanced QA assistant.",

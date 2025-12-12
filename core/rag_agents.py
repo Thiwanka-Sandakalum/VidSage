@@ -50,7 +50,7 @@ class QueryAnalyzer:
         os.environ['GOOGLE_API_KEY'] = self.api_key
         
         # Initialize LLM for query analysis
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite", temperature=0.1)
         
         # Create enhanced prompt template for query analysis and improvement
         self.query_analysis_prompt = ChatPromptTemplate.from_template(
@@ -324,7 +324,7 @@ class ContentSummarizer:
             if stream:
                 # Stream the response
                 response = self.client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash-lite",
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=0.2
@@ -343,7 +343,7 @@ class ContentSummarizer:
             else:
                 # Generate response at once
                 response = self.client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash-lite",
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=0.2

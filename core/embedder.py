@@ -47,10 +47,10 @@ class Embedder:
         # Initialize embeddings model
         self.embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         
-        # Text splitter for chunking documents
+        # Text splitter for chunking documents (reduced size to minimize API calls)
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=100
+            chunk_size=200,
+            chunk_overlap=30
         )
         
         # Set output directory
@@ -80,7 +80,7 @@ class Embedder:
     
     def create_embeddings(self, docs: List[Document]) -> List[List[float]]:
         """
-        Create embeddings for document chunks
+        Create embeddings for document chunks with rate limiting
         
         Args:
             docs: List of document chunks
@@ -88,14 +88,28 @@ class Embedder:
         Returns:
             List of embeddings
         """
-        logger.info("Creating embeddings")
+        import time
+        
+        logger.info(f"Creating embeddings for {len(docs)} chunks (reduced size to minimize quota usage)")
         
         try:
             # Extract text from documents
             texts = [doc.page_content for doc in docs]
             
-            # Create embeddings
-            embeddings = self.embedding_model.embed_documents(texts)
+            # Process in smaller batches to avoid quota issues
+            batch_size = 5  # Smaller batches
+            embeddings = []
+            
+            for i in range(0, len(texts), batch_size):
+                batch_texts = texts[i:i + batch_size]
+                logger.info(f"Processing batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1}")
+                
+                # Add delay between batches to avoid rate limits
+                if i > 0:
+                    time.sleep(1)  # 1 second delay
+                
+                batch_embeddings = self.embedding_model.embed_documents(batch_texts)
+                embeddings.extend(batch_embeddings)
             
             logger.info(f"Created {len(embeddings)} embeddings")
             return embeddings

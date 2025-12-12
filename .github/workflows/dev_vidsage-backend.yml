@@ -7,7 +7,7 @@ name: Build and deploy Python app to Azure Web App - vidsage-backend
 on:
     push:
         branches:
-            - dev
+            - main
         paths:
             - "Apps/api/**" # Only trigger when API code changes
             - ".github/workflows/dev_vidsage-backend.yml"

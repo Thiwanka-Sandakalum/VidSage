@@ -8,13 +8,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "Apps/api/**"
+      - ".github/workflows/main_vidsage-backend.yml"
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Apps/api # Set working directory for all steps
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -22,30 +28,58 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      # 🛠️ Local Build Section (Optional)
-      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('Apps/api/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Free up GitHub Actions runner disk space
         run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt
-                
-      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Clean Python cache files
+        run: |
+          echo "Cleaning __pycache__ directories..."
+          find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete
+          find . -type f -name "*.pyo" -delete
+          echo "Cache cleaned!"
+
+      # By default, Azure Oryx handles dependency installation during deployment
+      # We skip local build to save time and disk space
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
-            .
-            !antenv/
-
-      # 🚫 Opting Out of Oryx Build
-      # If you prefer to disable the Oryx build process during deployment, follow these steps:
-      # 1. Remove the SCM_DO_BUILD_DURING_DEPLOYMENT app setting from your Azure App Service Environment variables.
-      # 2. Refer to sample workflows for alternative deployment strategies: https://github.com/Azure/actions-workflow-samples/tree/master/AppService
-      
+            Apps/api
+            !Apps/api/.git/
+            !Apps/api/.github/
+            !Apps/api/__pycache__/
+            !Apps/api/**/__pycache__/
+            !Apps/api/*.pyc
+            !Apps/api/**/*.pyc
+            !Apps/api/.pytest_cache/
+            !Apps/api/.vscode/
+            !Apps/api/tests/
+            !Apps/api/antenv/
+            !Apps/api/*.egg-info/
+            !Apps/api/.coverage
+            !Apps/api/htmlcov/
+            !Apps/api/TEST_SUMMARY.md
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,7 +93,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-app
-      
+          path: ./app
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -67,10 +102,22 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_4A726B26BD7E459A97EA713D89C0DABD }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_ABAEF6F15D95410C8FDDBF29B1F087C5 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'vidsage-backend'
-          slot-name: 'Production'
-          
+          app-name: "vidsage-backend"
+          slot-name: "Production"
+          package: ./app
+          startup-command: "gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600"
+
+      - name: Check deployment status
+        if: always()
+        run: |
+          echo "Deployment status: ${{ steps.deploy-to-webapp.outcome }}"
+          if [ "${{ steps.deploy-to-webapp.outcome }}" != "success" ]; then
+            echo "❌ Deployment failed or was cancelled"
+            exit 1
+          else
+            echo "✅ Deployment successful!"
+          fi

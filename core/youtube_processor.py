@@ -105,11 +105,15 @@ class YouTubeProcessor:
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,
-                'format': 'best',
                 'socket_timeout': 15,  # Timeout in seconds
                 'verbose': False,  # Set to True for debugging if needed
                 'extract_flat': False,  # Get full info, not just the playlist
                 'ignoreerrors': True,  # Continue on error
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['default']
+                    }
+                }
             }
             
             # Get video info using yt-dlp
@@ -215,7 +219,7 @@ class YouTubeProcessor:
         """Save video information as JSON file"""
         video_id = info["id"]
         # Create subdirectory for video under info directory
-        video_info_dir = self.data_dir / "/info" / video_id
+        video_info_dir = self.data_dir/"info"/video_id
         video_info_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = video_info_dir / f"{video_id}_info.json"
@@ -270,6 +274,11 @@ class YouTubeProcessor:
                     'socket_timeout': 30,
                     'retries': 10,  # Retry on network errors
                     'fragment_retries': 10,
+                    'extractor_args': {
+                        'youtube': {
+                            'player_client': ['default']
+                        }
+                    }
                 }
                 
                 # Progress callback for logging
@@ -415,6 +424,11 @@ class YouTubeProcessor:
                 'subtitleslangs': langs,
                 'quiet': True,
                 'no_warnings': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['default']
+                    }
+                }
             }
             
             # First, extract video info and available subtitles
@@ -621,6 +635,11 @@ class YouTubeProcessor:
                 'quiet': True,
                 'no_warnings': False,
                 'ignoreerrors': False,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['default']
+                    }
+                }
             }
             
             # Download the video
@@ -710,7 +729,12 @@ class YouTubeProcessor:
                 'extract_flat': True,  # Only extract video info without downloading
                 'quiet': True,
                 'no_warnings': True,
-                'ignoreerrors': True  # Skip unavailable videos
+                'ignoreerrors': True,  # Skip unavailable videos
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['default']
+                    }
+                }
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Apps/api # Set working directory for all steps
+        working-directory: Apps/api
     permissions:
       contents: read
 

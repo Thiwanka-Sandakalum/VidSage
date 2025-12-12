@@ -22,6 +22,11 @@ htmlcov/
 .env
 .env.local
 
+# YouTube Cookies (SECURITY: Never commit these!)
+youtube_cookies*.txt
+*_cookies.txt
+cookies.txt
+
 # IDE
 .vscode/
 .idea/

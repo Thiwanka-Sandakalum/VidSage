@@ -76,6 +76,23 @@ class MongoDBVectorStoreManager:
         """
         return self.videos_collection.find_one({"video_id": video_id}) is not None
     
+    def user_has_video(self, user_id: str, video_id: str) -> bool:
+        """
+        Check if user has access to a specific video.
+        
+        Args:
+            user_id: User ID
+            video_id: YouTube video ID
+            
+        Returns:
+            True if user has access to the video
+        """
+        video = self.videos_collection.find_one({
+            "video_id": video_id,
+            "users": user_id
+        })
+        return video is not None
+    
     def get_video_metadata(self, video_id: str) -> Optional[Dict[str, Any]]:
         """
         Get video metadata.
@@ -91,13 +108,29 @@ class MongoDBVectorStoreManager:
             {"_id": 0}  # Exclude MongoDB _id field
         )
     
+    def get_suggested_questions(self, video_id: str) -> List[str]:
+        """
+        Get pre-generated suggested questions for a video.
+        
+        Args:
+            video_id: YouTube video ID
+            
+        Returns:
+            List of suggested questions, or empty list if none found
+        """
+        video_metadata = self.get_video_metadata(video_id)
+        if video_metadata:
+            return video_metadata.get("suggested_questions", [])
+        return []
+    
     def store_video(
         self,
         video_id: str,
         chunks: List[str],
         video_url: str,
         user_id: Optional[str] = None,
-        video_title: Optional[str] = None
+        video_title: Optional[str] = None,
+        suggested_questions: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Process and store video chunks with embeddings in MongoDB.
@@ -106,7 +139,7 @@ class MongoDBVectorStoreManager:
         1. Checks if video already exists (avoid re-processing)
         2. Generates embeddings for all chunks
         3. Stores chunks + embeddings in video_embeddings collection
-        4. Stores metadata in videos collection
+        4. Stores metadata in videos collection (including suggested questions)
         
         Args:
             video_id: YouTube video ID
@@ -114,6 +147,7 @@ class MongoDBVectorStoreManager:
             video_url: YouTube video URL
             user_id: Optional user ID who processed the video
             video_title: Optional video title
+            suggested_questions: Optional list of pre-generated questions about the video
             
         Returns:
             Dict with processing results
@@ -176,7 +210,8 @@ class MongoDBVectorStoreManager:
                 "processed_at": datetime.utcnow(),
                 "users": [user_id] if user_id else [],
                 "status": "ready",
-                "transcript_length": sum(len(chunk) for chunk in chunks)
+                "transcript_length": sum(len(chunk) for chunk in chunks),
+                "suggested_questions": suggested_questions or []
             }
             self.videos_collection.insert_one(video_metadata)
             logger.info(f"✅ Stored metadata for video {video_id}")
@@ -226,7 +261,7 @@ class MongoDBVectorStoreManager:
             # Use LangChain's similarity_search with filter
             results = self.vector_store.similarity_search_with_score(
                 query=query,
-                k=top_k,
+                k=top_k if top_k else 3,
                 pre_filter={"video_id": video_id}
             )
             

@@ -24,15 +24,21 @@ EMBEDDING_TASK_TYPE: Literal[
 ] = "RETRIEVAL_DOCUMENT"
 
 # LLM Configuration for RAG Generation
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-pro")  # Fast and cost-effective
-LLM_TEMPERATURE = 0.3  # Low temperature for factual responses
-LLM_MAX_OUTPUT_TOKENS = 1024  # Maximum response length
-MAX_CONTEXT_CHUNKS = 5  # Number of chunks to use as context
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")  # Fast and cost-effective
+# Temperature Guide (Gemini API Best Practices):
+# - 0.0-0.3: Factual, deterministic responses (best for RAG)
+# - 0.7-0.8: Balanced creativity + factual accuracy
+# - 0.8-1.0: Creative content, code generation, structured output (tables, JSON)
+# - 1.0: Default for Gemini 3 models (recommended)
+# Note: Changing temperature below 1.0 for Gemini 3 models may cause looping/degraded performance
+LLM_TEMPERATURE = 0.7  # Moderate temperature for balanced RAG responses
+LLM_MAX_OUTPUT_TOKENS = 512  # Reduced from 1024 to limit response size and token usage
+MAX_CONTEXT_CHUNKS = 2  # Reduced from 5 to 2 to minimize context size and API quota usage
 ENABLE_STREAMING = True  # Enable streaming responses
 
 # Text Chunking Configuration
-CHUNK_SIZE = 500  # Maximum characters per chunk
-CHUNK_OVERLAP = 100  # Overlap between chunks in characters
+CHUNK_SIZE = 300  # Reduced from 500 to minimize context size per chunk
+CHUNK_OVERLAP = 50  # Reduced from 100 to minimize overlap
 CHUNK_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]  # Separators in priority order
 
 # Transcript Configuration

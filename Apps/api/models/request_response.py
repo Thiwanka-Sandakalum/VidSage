@@ -4,148 +4,49 @@ from pydantic import BaseModel, Field
 
 
 class ProcessVideoRequest(BaseModel):
-    """Request model for processing a YouTube video."""
-    
-    url: str = Field(
-        ..., 
-        description="YouTube video URL",
-        examples=["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]
-    )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-            }
-        }
+    url: str
 
 
 class ChunkInfo(BaseModel):
-    """Information about a single text chunk."""
-    
-    id: str = Field(..., description="Unique chunk identifier")
-    text: str = Field(..., description="Chunk text content")
-    embedding: List[float] = Field(
-        ..., 
-        description="Full embedding vector (768 dimensions)"
-    )
-    embedding_sample: Optional[List[float]] = Field(
-        default=None,
-        description="Preview: First 5 dimensions of embedding (for debugging)"
-    )
+    id: str
+    text: str
+    embedding: List[float]
+    embedding_sample: Optional[List[float]] = None
 
 
 class ProcessVideoResponse(BaseModel):
-    """Response model for video processing results."""
-    
-    video_id: str = Field(..., description="YouTube video ID")
-    status: str = Field(..., description="Processing status")
-    chunks_count: int = Field(..., description="Total number of chunks created")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "video_id": "dQw4w9WgXcQ",
-                "status": "completed",
-                "chunks_count": 115
-            }
-        }
+    video_id: str
+    status: str
+    chunks_count: int
 
 
 class ErrorResponse(BaseModel):
-    """Error response model."""
-    
-    error: str = Field(..., description="Error message")
-    detail: Optional[str] = Field(None, description="Detailed error information")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "error": "Invalid YouTube URL",
-                "detail": "The provided URL is not a valid YouTube video URL"
-            }
-        }
+    error: str
+    detail: Optional[str] = None
 
 
 class EmbedQueryRequest(BaseModel):
-    """Request model for embedding a search query."""
-    
-    query: str = Field(
-        ...,
-        description="Text query to embed",
-        min_length=1,
-        max_length=2048,
-        examples=["What is machine learning?"]
-    )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query": "What is machine learning?"
-            }
-        }
+    query: str
 
 
 class EmbedQueryResponse(BaseModel):
-    """Response model for query embedding."""
-    
-    query: str = Field(..., description="Original query text")
-    embedding: List[float] = Field(..., description="Full embedding vector")
-    dimensions: int = Field(..., description="Embedding dimensions")
-    model: str = Field(..., description="Model used for embedding")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query": "What is machine learning?",
-                "embedding": [0.123, -0.456, 0.789],  # Truncated for example
-                "dimensions": 768,
-                "model": "models/text-embedding-004"
-            }
-        }
+    query: str
+    embedding: List[float]
+    dimensions: int
+    model: str
 
 
 class SearchRequest(BaseModel):
-    """Request model for searching a video."""
-    
-    video_id: str = Field(
-        ...,
-        description="YouTube video ID to search in",
-        min_length=11,
-        max_length=11,
-        examples=["ggyxn9dphLU"]
-    )
-    query: str = Field(
-        ...,
-        description="Search query text",
-        min_length=1,
-        max_length=2048,
-        examples=["money advice"]
-    )
-    top_k: int = Field(
-        default=5,
-        description="Number of results to return",
-        ge=1,
-        le=20
-    )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "video_id": "ggyxn9dphLU",
-                "query": "money advice",
-                "top_k": 5
-            }
-        }
+    video_id: str
+    query: str
+    top_k: int = 5
 
 
 class SearchResult(BaseModel):
-    """Single search result."""
-    
-    chunk_id: str = Field(..., description="Chunk identifier")
-    text: str = Field(..., description="Chunk text content")
-    score: float = Field(..., description="Similarity score (higher = more similar)")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    chunk_id: str
+    text: str
+    score: float
+    metadata: Dict[str, Any] = {}
 
 
 class SearchResponse(BaseModel):
@@ -183,9 +84,6 @@ class ListVideosResponse(BaseModel):
     videos: List[VideoMetadata] = Field(..., description="List of videos")
 
 
-# ============================================
-# RAG Generation Models
-# ============================================
 
 class GenerateRequest(BaseModel):
     """Request model for RAG-based answer generation."""

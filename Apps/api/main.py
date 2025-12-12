@@ -13,6 +13,7 @@ from routers.search_router import router as search_router, set_mongodb_manager a
 from routers.generate_router import router as generate_router, set_mongodb_manager as set_generate_manager
 from routers.videos_router import router as videos_router, set_mongodb_manager as set_videos_manager
 from routers.stats_router import router as stats_router, set_mongodb_manager as set_stats_manager
+from routers.suggestions_router import router as suggestions_router, set_mongodb_manager as set_suggestions_manager
 from routers.root_router import router as root_router
 from routers.health_router import router as health_router
 
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
             set_generate_manager(mongodb_manager)
             set_videos_manager(mongodb_manager)
             set_stats_manager(mongodb_manager)
+            set_suggestions_manager(mongodb_manager)
         except Exception as e:
             print(f"❌ ERROR: Failed to connect to MongoDB: {str(e)}")
     else:
@@ -74,6 +76,7 @@ app.include_router(search_router)
 app.include_router(generate_router)
 app.include_router(videos_router)
 app.include_router(stats_router)
+app.include_router(suggestions_router)
 
 
 if __name__ == "__main__":

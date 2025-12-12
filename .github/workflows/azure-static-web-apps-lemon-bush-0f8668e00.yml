@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "Apps/client/**"
+      - ".github/workflows/azure-static-web-apps-lemon-bush-0f8668e00.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:

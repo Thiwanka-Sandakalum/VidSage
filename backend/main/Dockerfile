@@ -1,15 +1,36 @@
-FROM python:3.11-slim
 
+# ---- Build stage ----
+FROM python:3.11-slim AS builder
 WORKDIR /app
 
+# Install build dependencies
 RUN apt-get update --no-install-suggests --no-install-recommends && \
-    apt-get install -y --no-install-recommends build-essential && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apt-get purge -y --auto-remove build-essential && \
+    apt-get install -y --no-install-recommends build-essential gcc && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Copy only requirements first for better caching
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# ---- Production image ----
+FROM python:3.11-slim
+WORKDIR /app
+
+# Install runtime dependencies only (if any)
 RUN apt-get update --no-install-suggests --no-install-recommends && \
+    apt-get install -y --no-install-recommends libpq-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy app source
 COPY . .
+
+# Create a non-root user and switch to it
+RUN useradd -m appuser && chown -R appuser /app
+USER appuser
 
 EXPOSE 8000
 

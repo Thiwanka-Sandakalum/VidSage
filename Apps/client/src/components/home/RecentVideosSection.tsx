@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../hooks';
-import { processVideo, resetVideoState } from '../../store/videoSlice';
 import { Link } from 'react-router-dom';
-import { Stack, Group, Title, Button, SimpleGrid, Paper, Box, Text, ThemeIcon, Skeleton, Card, Modal, Tooltip, Badge, ActionIcon } from '@mantine/core';
+import { Stack, Group, Title, Button, SimpleGrid, Text, ThemeIcon, Skeleton, Card, Tooltip, Badge, ActionIcon } from '@mantine/core';
+import VideoCard from '../common/VideoCard';
+import { processVideo, resetVideoState } from '../../app/store/videoSlice';
+
+interface Video {
+    id: string;
+    title: string;
+    author: string;
+    publishedAt: string;
+    thumbnailUrl?: string;
+}
+
+interface RecentVideosSectionProps {
+    videos: Video[];
+    loading?: boolean;
+}
 // Example podcast videos for first-time users
 const EXAMPLE_VIDEOS = [
     {
@@ -31,21 +45,6 @@ const EXAMPLE_VIDEOS = [
         youtubeUrl: 'https://www.youtube.com/watch?v=3qHkcs3kG44',
     },
 ];
-import VideoCard from '../common/VideoCard';
-
-interface Video {
-    id: string;
-    title: string;
-    author: string;
-    publishedAt: string;
-    thumbnailUrl?: string;
-}
-
-interface RecentVideosSectionProps {
-    videos: Video[];
-    loading?: boolean;
-}
-
 const VideoCardSkeleton: React.FC = () => (
     <Card padding="lg" radius="xl" withBorder>
         <Card.Section>

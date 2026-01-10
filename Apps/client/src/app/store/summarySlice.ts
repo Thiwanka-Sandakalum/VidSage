@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { api } from '../services/api';
-import { VideosService } from '../services';
+import { VideosService } from '../../services';
 
 interface SummaryState {
     summary: string;

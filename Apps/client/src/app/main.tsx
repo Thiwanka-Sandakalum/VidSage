@@ -1,14 +1,14 @@
-import './index.css';
+import '../assets/styles/index.css';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { MantineProvider } from '@mantine/core';
+import { store } from './store/store';
+import { useAuth, ClerkProvider } from '@clerk/clerk-react';
 import { Notifications } from '@mantine/notifications';
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
-import { store } from '../src/store/store';
+import { MantineProvider } from '@mantine/core';
+import { OpenAPI } from '../services';
+import { clerkAppearance } from '../utils/clerkAppearance';
 import App from './App';
-import { OpenAPI } from './services';
-import { clerkAppearance } from './utils/clerkAppearance';
 
 const configs = (window as any).config || {};
 const AppWithAPI = () => {

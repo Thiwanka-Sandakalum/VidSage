@@ -5,7 +5,6 @@ import {
   Group,
   Pagination
 } from '@mantine/core';
-import { fetchHistory, deleteVideo } from '../store/videoSlice';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import HistoryEmpty from '../components/history/HistoryEmpty';
 import HistoryHeader from '../components/history/HistoryHeader';
@@ -13,6 +12,7 @@ import HistoryPaginationInfo from '../components/history/HistoryPaginationInfo';
 import HistorySkeleton from '../components/history/HistorySkeleton';
 import VideoGrid from '../components/history/VideoGrid';
 import VideoList from '../components/history/VideoList';
+import { deleteVideo, fetchHistory } from '../app/store/videoSlice';
 
 
 const History: React.FC = () => {

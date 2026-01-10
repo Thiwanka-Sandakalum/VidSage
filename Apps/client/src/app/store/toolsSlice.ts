@@ -1,7 +1,6 @@
-
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { ToolsState } from '../types/types';
-import { api } from '../services/api';
+import { api } from '../../services/api';
+import { ToolsState } from '../../types/types';
 
 const initialState: ToolsState = {
   integrations: [

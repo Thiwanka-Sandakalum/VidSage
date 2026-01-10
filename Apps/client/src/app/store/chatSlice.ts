@@ -1,7 +1,6 @@
-
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { api } from '../services/api';
-import { ChatState } from '../types/types';
+import { api } from '../../services/api';
+import { ChatState } from '../../types/types';
 
 const initialState: ChatState = {
   messages: [],

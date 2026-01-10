@@ -1,15 +1,15 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import VideoDetail from './pages/VideoDetail';
-import History from './pages/History';
-import Tools from './pages/Tools';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import OAuthCallback from './components/common/OAuthCallback';
 import { SignIn, SignUp, useAuth } from '@clerk/clerk-react';
 import { Container, Loader, Box } from '@mantine/core';
+import Tools from '../pages/Tools';
+import VideoDetail from '../pages/VideoDetail';
+import Home from '../pages/Home';
+import History from '../pages/History';
+import ProtectedRoute from './ProtectedRoute';
+import Layout from './Layout';
+import OAuthCallback from './OAuthCallback';
 
 const App = () => {
   const { isSignedIn, isLoaded } = useAuth();

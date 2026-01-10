@@ -2,8 +2,8 @@
 import { Stack, Box, Title, Divider, SimpleGrid, Card, Group, Badge, Switch, Button, Paper, Text, Container } from '@mantine/core';
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { checkGoogleStatus, connectGoogle, disconnectGoogle } from '../store/toolsSlice';
 import { notifications } from '@mantine/notifications';
+import { checkGoogleStatus, connectGoogle, disconnectGoogle } from '../app/store/toolsSlice';
 
 const Tools: React.FC = () => {
   const dispatch = useAppDispatch();

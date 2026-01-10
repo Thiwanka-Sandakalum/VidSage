@@ -10,14 +10,14 @@ import VideoHeader from '../components/videoDetail/VideoHeader';
 import ToolActions from '../components/videoDetail/ToolActions';
 import QuickQueries from '../components/videoDetail/QuickQueries';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { addUserMessage, sendMessage, clearChat } from '../store/chatSlice';
-import { store } from '../store/store';
-import { fetchVideoSummary } from '../store/summarySlice';
-import { selectVideoFromHistory, fetchHistory, fetchSuggestedQuestions, processVideo, deleteVideo } from '../store/videoSlice';
 import geminiService from '../services/geminiService';
 import AIInsightsSection from '../components/common/AIInsightsSectionProps';
 import youtubeService from '../services/youtubeService';
 import ErrorDisplay from '../components/common/ErrorDisplay';
+import { deleteVideo, fetchHistory, fetchSuggestedQuestions, processVideo, selectVideoFromHistory } from '../app/store/videoSlice';
+import { addUserMessage, sendMessage, clearChat } from '../app/store/chatSlice';
+import { store } from '../app/store/store';
+import { fetchVideoSummary } from '../app/store/summarySlice';
 
 
 interface ChatFormData {
@@ -134,7 +134,6 @@ const VideoDetail: React.FC = () => {
         message: 'The summary was saved to Google Docs.',
         color: 'green',
       });
-      // Fetch updated doc link
       const result = await ToolsService.getSummaryDocLinkToolsSummaryDocLinkGet(id);
       if (result && result.exists && result.doc_link) {
         setSaveState((prev) => ({ ...prev, docLink: result.doc_link }));

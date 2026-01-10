@@ -9,8 +9,8 @@ import HeroSection from '../components/home/HeroSection';
 import StatsSection from '../components/home/StatsSection';
 import RecentVideosSection from '../components/home/RecentVideosSection';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { fetchStats, fetchHistory, resetVideoState, processVideo } from '../store/videoSlice';
 import { ProcessStatus } from '../types/types';
+import { fetchHistory, fetchStats, processVideo, resetVideoState } from '../app/store/videoSlice';
 
 interface VideoFormData {
   url: string;

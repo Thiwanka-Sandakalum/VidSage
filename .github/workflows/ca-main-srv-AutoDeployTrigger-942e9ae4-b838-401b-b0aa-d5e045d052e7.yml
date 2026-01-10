@@ -2,21 +2,18 @@ name: Trigger auto deployment for ca-main-srv
 
 # When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches:
+      - main
     paths:
-    - '**'
-    - '.github/workflows/ca-main-srv-AutoDeployTrigger-942e9ae4-b838-401b-b0aa-d5e045d052e7.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - "backend/main/**"
+      - ".github/workflows/ca-main-srv-AutoDeployTrigger-942e9ae4-b838-401b-b0aa-d5e045d052e7.yml"
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write #This is required for requesting the OIDC JWT Token
       contents: read #Required when GH token is used to authenticate with private repo
 
@@ -45,5 +42,3 @@ jobs:
           imageToBuild: portfolioacr01.azurecr.io/ca-main-srv:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
-
-

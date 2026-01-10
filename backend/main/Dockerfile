@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update --no-install-suggests --no-install-recommends --no-cache && \
+RUN apt-get update --no-install-suggests --no-install-recommends && \
     apt-get install -y --no-install-recommends build-essential && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get purge -y --auto-remove build-essential && \

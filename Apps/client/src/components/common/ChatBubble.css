@@ -1,0 +1,208 @@
+/* Markdown Content Styling */
+.markdown-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--mantine-color-dark-8);
+}
+
+/* Remove extra spacing from first and last elements */
+.markdown-content>*:first-child {
+    margin-top: 0 !important;
+}
+
+.markdown-content>*:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* Code block container */
+.markdown-content pre {
+    margin: 0.75rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Inline code in lists */
+.markdown-content li code {
+    vertical-align: baseline;
+}
+
+/* List spacing adjustments */
+.markdown-content ul,
+.markdown-content ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content li {
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content li:last-child {
+    margin-bottom: 0;
+}
+
+/* Nested lists */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Paragraph spacing */
+.markdown-content p {
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Headers spacing */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child,
+.markdown-content h4:first-child {
+    margin-top: 0;
+}
+
+/* Table styling */
+.markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.75rem 0;
+    font-size: 0.875rem;
+}
+
+.markdown-content table th {
+    background-color: var(--mantine-color-gray-1);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--mantine-color-gray-3);
+}
+
+.markdown-content table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.markdown-content table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Blockquote */
+.markdown-content blockquote {
+    border-left: 4px solid var(--mantine-color-indigo-5);
+    background-color: var(--mantine-color-gray-0);
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 6px;
+    font-style: italic;
+}
+
+.markdown-content blockquote p {
+    margin: 0;
+    color: var(--mantine-color-dimmed);
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+    border: none;
+    border-top: 1px solid var(--mantine-color-gray-3);
+    margin: 1rem 0;
+}
+
+/* Links */
+.markdown-content a {
+    color: var(--mantine-color-indigo-6);
+    text-decoration: underline;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.markdown-content a:hover {
+    color: var(--mantine-color-indigo-8);
+}
+
+/* Strong/Bold text */
+.markdown-content strong {
+    font-weight: 700;
+    color: var(--mantine-color-indigo-8);
+}
+
+/* Emphasis/Italic */
+.markdown-content em {
+    font-style: italic;
+}
+
+/* User message markdown (if needed) */
+.user-markdown {
+    color: white;
+}
+
+.user-markdown strong {
+    color: white;
+    font-weight: 700;
+}
+
+.user-markdown a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.user-markdown code {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+/* Scrollbar for code blocks */
+.markdown-content pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+.markdown-content pre::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.markdown-content pre::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.markdown-content pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .markdown-content {
+        font-size: 13px;
+    }
+
+    .markdown-content table {
+        font-size: 0.8rem;
+    }
+
+    .markdown-content h1 {
+        font-size: 1.25rem;
+    }
+
+    .markdown-content h2 {
+        font-size: 1.1rem;
+    }
+
+    .markdown-content h3 {
+        font-size: 1rem;
+    }
+}

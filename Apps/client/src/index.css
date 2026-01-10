@@ -1,0 +1,54 @@
+/* Fade-out effect for deleted video cards */
+.video-card-fade {
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-card-fade-out {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+    pointer-events: none;
+}
+
+/* Clickable effect for VideoCard */
+.video-card-clickable {
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.video-card-clickable:hover {
+    box-shadow: 0 8px 32px 0 rgba(95, 61, 196, 0.18), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
+    transform: translateY(-4px) scale(1.025);
+    z-index: 2;
+}
+
+/* Focus effect for video card hover */
+.video-card-hover {
+    cursor: pointer;
+}
+
+.video-card-hover:hover {
+    box-shadow: 0 8px 32px 0 rgba(95, 61, 196, 0.18), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
+    transform: translateY(-4px) scale(1.025);
+    z-index: 2;
+}
+
+/* Global styles for VidSage */
+
+body {
+    background: #181825 !important;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+#root {
+    min-height: 100vh;
+    background: #181825;
+}
+
+.centered-auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

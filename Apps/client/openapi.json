@@ -1,0 +1,1457 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "VidSage - YouTube RAG Pipeline API",
+        "description": "\n    ## VidSage - AI-Powered YouTube Video Analysis\n    \n    A comprehensive RAG (Retrieval-Augmented Generation) pipeline API for processing YouTube videos, \n    extracting transcripts, performing semantic search, and generating AI-powered answers.\n    ",
+        "contact": {
+            "name": "VidSage API Support",
+            "email": "support@vidsage.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/health": {
+            "get": {
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health Check",
+                "description": "Check if the API is running",
+                "operationId": "health_check_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "tags": [
+                    "health"
+                ],
+                "summary": "API Root",
+                "description": "Root endpoint with API information",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/videos/process": {
+            "post": {
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Process a YouTube video",
+                "description": "Extract transcript, create embeddings, and store in database",
+                "operationId": "process_video_videos_process_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessVideoRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProcessVideoResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/videos": {
+            "get": {
+                "tags": [
+                    "videos"
+                ],
+                "summary": "List user's videos",
+                "description": "Get all videos processed by the current user",
+                "operationId": "list_videos_videos_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListVideosResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/videos/save": {
+            "post": {
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Save video to library",
+                "description": "Add a video to user's library",
+                "operationId": "save_video_videos_save_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_save_video_videos_save_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/videos/{video_id}": {
+            "delete": {
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Delete a video and its chunks",
+                "description": "Delete a video and all its chunks from the database for the current user.",
+                "operationId": "delete_video_videos__video_id__delete",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "YouTube video ID to delete",
+                            "title": "Video Id"
+                        },
+                        "description": "YouTube video ID to delete"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search": {
+            "post": {
+                "tags": [
+                    "search"
+                ],
+                "summary": "Search video content",
+                "description": "Perform semantic search within a video's transcript",
+                "operationId": "search_video_search_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SearchRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SearchResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/generate": {
+            "post": {
+                "tags": [
+                    "generate"
+                ],
+                "summary": "Generate AI answer",
+                "description": "Generate an AI-powered answer using RAG (Retrieval-Augmented Generation)",
+                "operationId": "generate_answer_generate_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GenerateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GenerateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/stats": {
+            "get": {
+                "tags": [
+                    "stats"
+                ],
+                "summary": "Get system statistics",
+                "description": "Get statistics about processed videos and embeddings",
+                "operationId": "get_stats_stats_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/suggestions/{video_id}": {
+            "get": {
+                "tags": [
+                    "suggestions"
+                ],
+                "summary": "Get suggested questions",
+                "description": "Get AI-generated questions about a video",
+                "operationId": "get_suggestions_suggestions__video_id__get",
+                "parameters": [
+                    {
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Video Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuggestionsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/integrations/google/auth": {
+            "get": {
+                "tags": [
+                    "integrations"
+                ],
+                "summary": "Initialize Google OAuth",
+                "description": "Start Google OAuth flow for account integration",
+                "operationId": "google_auth_init_integrations_google_auth_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/integrations/google/status": {
+            "get": {
+                "tags": [
+                    "integrations"
+                ],
+                "summary": "Check Google OAuth status",
+                "description": "Check if user has connected their Google account",
+                "operationId": "google_auth_status_integrations_google_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/integrations/google/disconnect": {
+            "delete": {
+                "tags": [
+                    "integrations"
+                ],
+                "summary": "Disconnect Google account",
+                "description": "Revoke Google OAuth access and delete stored tokens",
+                "operationId": "google_disconnect_integrations_google_disconnect_delete",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Connected",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/videos/{video_id}/summary": {
+            "get": {
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Get video summary",
+                "description": "Retrieve the pre-generated summary for a processed video.",
+                "operationId": "get_video_summary_videos__video_id__summary_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Video Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "title": "Response Get Video Summary Videos  Video Id  Summary Get"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tools/save-summary-to-doc": {
+            "post": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Save video summary to Google Doc",
+                "description": "Fetches the video summary and saves it as a new Google Doc via the tool API.",
+                "operationId": "save_summary_to_doc_tools_save_summary_to_doc_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSummaryRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "title": "Response Save Summary To Doc Tools Save Summary To Doc Post"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/tools/summary-doc-link": {
+            "get": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Check if video summary is saved to Google Doc",
+                "description": "Checks if a Google Doc for the video summary already exists for the user.",
+                "operationId": "get_summary_doc_link_tools_summary_doc_link_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "video_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "Video ID to check",
+                            "title": "Video Id"
+                        },
+                        "description": "Video ID to check"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "title": "Response Get Summary Doc Link Tools Summary Doc Link Get"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Video Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Body_save_video_videos_save_post": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id",
+                        "description": "YouTube video ID to save"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id"
+                ],
+                "title": "Body_save_video_videos_save_post"
+            },
+            "ErrorResponse": {
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "title": "Error"
+                    },
+                    "detail": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "error"
+                ],
+                "title": "ErrorResponse"
+            },
+            "GenerateRequest": {
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "minLength": 1,
+                        "title": "Query",
+                        "description": "User question to answer",
+                        "examples": [
+                            "How to grow bigger muscles?"
+                        ]
+                    },
+                    "video_id": {
+                        "type": "string",
+                        "maxLength": 11,
+                        "minLength": 11,
+                        "title": "Video Id",
+                        "description": "YouTube video ID to search in",
+                        "examples": [
+                            "XLr2RKoD-oY"
+                        ]
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "maximum": 10,
+                        "minimum": 1,
+                        "title": "Top K",
+                        "description": "Number of context chunks to retrieve",
+                        "default": 5
+                    },
+                    "stream": {
+                        "type": "boolean",
+                        "title": "Stream",
+                        "description": "Enable streaming responses",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "query",
+                    "video_id"
+                ],
+                "title": "GenerateRequest",
+                "description": "Request model for RAG-based answer generation.",
+                "example": {
+                    "query": "How to grow bigger muscles?",
+                    "stream": false,
+                    "top_k": 5,
+                    "video_id": "XLr2RKoD-oY"
+                }
+            },
+            "GenerateResponse": {
+                "properties": {
+                    "answer": {
+                        "type": "string",
+                        "title": "Answer",
+                        "description": "Generated answer to the query"
+                    },
+                    "sources": {
+                        "items": {
+                            "$ref": "#/components/schemas/SourceChunk"
+                        },
+                        "type": "array",
+                        "title": "Sources",
+                        "description": "Source chunks used for answer"
+                    },
+                    "model": {
+                        "type": "string",
+                        "title": "Model",
+                        "description": "LLM model used for generation"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "answer",
+                    "sources",
+                    "model"
+                ],
+                "title": "GenerateResponse",
+                "description": "Response model for generated answers.",
+                "example": {
+                    "answer": "To grow bigger muscles, focus on progressive overload, proper nutrition with adequate protein intake, and sufficient rest between workouts...",
+                    "model": "gemini-1.5-flash",
+                    "sources": [
+                        {
+                            "chunk_id": "chunk_12",
+                            "relevance_score": 0.92,
+                            "text_preview": "Progressive overload is key to muscle growth. You need to gradually increase..."
+                        }
+                    ]
+                }
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "ListVideosResponse": {
+                "properties": {
+                    "videos": {
+                        "items": {
+                            "$ref": "#/components/schemas/VideoMetadata"
+                        },
+                        "type": "array",
+                        "title": "Videos",
+                        "description": "List of videos"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "videos"
+                ],
+                "title": "ListVideosResponse",
+                "description": "Response model for listing videos."
+            },
+            "ProcessVideoRequest": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "title": "Url"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "ProcessVideoRequest"
+            },
+            "ProcessVideoResponse": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    },
+                    "chunks_count": {
+                        "type": "integer",
+                        "title": "Chunks Count"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id",
+                    "status",
+                    "chunks_count"
+                ],
+                "title": "ProcessVideoResponse"
+            },
+            "SaveSummaryRequest": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id"
+                ],
+                "title": "SaveSummaryRequest"
+            },
+            "SearchRequest": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id"
+                    },
+                    "query": {
+                        "type": "string",
+                        "title": "Query"
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "title": "Top K",
+                        "default": 5
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id",
+                    "query"
+                ],
+                "title": "SearchRequest"
+            },
+            "SearchResponse": {
+                "properties": {
+                    "results": {
+                        "items": {
+                            "$ref": "#/components/schemas/SearchResult"
+                        },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "Search results"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "results"
+                ],
+                "title": "SearchResponse",
+                "description": "Response model for video search.",
+                "example": {
+                    "results": [
+                        {
+                            "chunk_id": "chunk_3",
+                            "metadata": {
+                                "chunk_index": 3
+                            },
+                            "score": 0.89,
+                            "text": "Sample chunk text about money..."
+                        }
+                    ]
+                }
+            },
+            "SearchResult": {
+                "properties": {
+                    "chunk_id": {
+                        "type": "string",
+                        "title": "Chunk Id"
+                    },
+                    "text": {
+                        "type": "string",
+                        "title": "Text"
+                    },
+                    "score": {
+                        "type": "number",
+                        "title": "Score"
+                    },
+                    "metadata": {
+                        "additionalProperties": true,
+                        "type": "object",
+                        "title": "Metadata",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "chunk_id",
+                    "text",
+                    "score"
+                ],
+                "title": "SearchResult"
+            },
+            "SourceChunk": {
+                "properties": {
+                    "chunk_id": {
+                        "type": "string",
+                        "title": "Chunk Id",
+                        "description": "Referenced chunk ID"
+                    },
+                    "relevance_score": {
+                        "type": "number",
+                        "title": "Relevance Score",
+                        "description": "Relevance score (0-1)"
+                    },
+                    "text_preview": {
+                        "type": "string",
+                        "title": "Text Preview",
+                        "description": "Preview of chunk text (first 100 chars)"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "chunk_id",
+                    "relevance_score",
+                    "text_preview"
+                ],
+                "title": "SourceChunk",
+                "description": "Source chunk reference in generated answer."
+            },
+            "SuggestionsResponse": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id",
+                        "description": "YouTube video ID"
+                    },
+                    "questions": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Questions",
+                        "description": "List of suggested questions"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id",
+                    "questions"
+                ],
+                "title": "SuggestionsResponse",
+                "description": "Response model for suggested questions."
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "VideoMetadata": {
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "title": "Video Id",
+                        "description": "YouTube video ID"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "description": "Video title"
+                    },
+                    "chunks_count": {
+                        "type": "integer",
+                        "title": "Chunks Count",
+                        "description": "Number of chunks"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status",
+                        "description": "Processing status"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "video_id",
+                    "title",
+                    "chunks_count",
+                    "status"
+                ],
+                "title": "VideoMetadata",
+                "description": "Video metadata model."
+            }
+        },
+        "securitySchemes": {
+            "HTTPBearer": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "health",
+            "description": "Health check and system status"
+        },
+        {
+            "name": "videos",
+            "description": "Video processing and management"
+        },
+        {
+            "name": "search",
+            "description": "Semantic search within video content"
+        },
+        {
+            "name": "generate",
+            "description": "AI-powered answer generation"
+        },
+        {
+            "name": "stats",
+            "description": "System statistics"
+        },
+        {
+            "name": "suggestions",
+            "description": "AI-generated question suggestions"
+        },
+        {
+            "name": "integrations",
+            "description": "External tool integrations (Google OAuth)"
+        }
+    ]
+}

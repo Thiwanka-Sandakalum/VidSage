@@ -2,37 +2,25 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="https://vitejs.dev/logo.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/global.css" />
-  <title>YT Genius - AI Video Analyst</title>
-  <script src="/config.js"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            mantine: {
-              blue: '#228be6',
-              dark: '#1A1B1E',
-              gray: '#f8f9fa',
-              border: '#e9ecef'
-            }
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidSage - AI Video Intelligence</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
         }
-      }
-    }
-  </script>
-  <script type="importmap">
-</script>
-  <link rel="stylesheet" href="/index.css">
+    </style>
 </head>
 
 <body>
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script src="/public/config.js"></script>
 </body>
 
 </html>

@@ -13,6 +13,7 @@ A powerful tool for analyzing YouTube videos using transcription, AI summarizati
 - **Text-to-Speech**: Convert summaries back to audio
 - **Subtitles Processing**: Automatically fetch subtitles when available
 
+<<<<<<< HEAD
 
 ## License
 
@@ -21,3 +22,5 @@ A powerful tool for analyzing YouTube videos using transcription, AI summarizati
 ## Contributors
 
 [Your Name or Team]
+=======
+>>>>>>> main

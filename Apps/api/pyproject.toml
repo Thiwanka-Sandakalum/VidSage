@@ -1,0 +1,24 @@
+[tool.pytest.ini_options]
+addopts = [
+  "-v",
+  "--tb=short",
+  "--strict-markers",
+  "--disable-warnings",
+]
+python_classes = ["Test*"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+  "*/tests/*",
+  "*/__pycache__/*",
+  "*/venv/*",
+]
+source = ["services", "models", "utils", "routers"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

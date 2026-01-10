@@ -6,8 +6,12 @@ gui/issuies.txt
 .vscode/
 __pycache__/
 Apps/microservices/logs/
+<<<<<<< HEAD
 **/node_modules/
 Apps/client/config.js
 Apps/client/public/config.js
 backend/tool-integration/.env.test
 Apps/client/public/config.js
+=======
+**/node_modules/
+>>>>>>> main

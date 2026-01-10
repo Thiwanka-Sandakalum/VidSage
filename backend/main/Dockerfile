@@ -10,7 +10,7 @@ RUN apt-get update --no-install-suggests --no-install-recommends && \
 
 # Copy only requirements first for better caching
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ---- Production image ----
 FROM python:3.11-slim
@@ -21,9 +21,7 @@ RUN apt-get update --no-install-suggests --no-install-recommends && \
     apt-get install -y --no-install-recommends libpq-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# No need to copy /root/.local, global install is used
 
 # Copy app source
 COPY . .

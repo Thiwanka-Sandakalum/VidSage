@@ -1,5 +1,0 @@
-{
-  "name": "YT Genius - Video Analyst",
-  "description": "A React application that analyzes YouTube videos, provides transcripts, and offers an AI chat interface for Q&A.",
-  "requestFramePermissions": []
-}

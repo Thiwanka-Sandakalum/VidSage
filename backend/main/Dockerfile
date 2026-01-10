@@ -8,6 +8,7 @@ RUN apt-get update --no-install-suggests --no-install-recommends --no-cache && \
     apt-get purge -y --auto-remove build-essential && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update --no-install-suggests --no-install-recommends && \
 COPY . .
 
 EXPOSE 8000

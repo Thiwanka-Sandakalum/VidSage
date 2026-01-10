@@ -21,7 +21,9 @@ RUN apt-get update --no-install-suggests --no-install-recommends && \
     apt-get install -y --no-install-recommends libpq-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# No need to copy /root/.local, global install is used
+
+# Copy installed Python packages and binaries from builder
+COPY --from=builder /usr/local /usr/local
 
 # Copy app source
 COPY . .

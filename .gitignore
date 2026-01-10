@@ -7,3 +7,7 @@ gui/issuies.txt
 __pycache__/
 Apps/microservices/logs/
 **/node_modules/
+Apps/client/config.js
+Apps/client/public/config.js
+backend/tool-integration/.env.test
+Apps/client/public/config.js

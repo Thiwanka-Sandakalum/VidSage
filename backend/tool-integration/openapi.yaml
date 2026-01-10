@@ -1,0 +1,546 @@
+openapi: 3.0.3
+info:
+  title: VidSage User Management & Google OAuth API
+  description: |
+    REST API for managing Google OAuth 2.0 authentication and Google Docs integration.
+
+    ## Features
+    - Google OAuth 2.0 Authorization Code flow
+    - Automatic token refresh with offline access
+    - Create and manage Google Docs with AI-generated content
+    - Secure encrypted token storage in MongoDB
+    - Clerk user ID integration
+
+    ## Authentication Flow
+    1. Initiate OAuth: `GET /auth/google?userId={clerkUserId}`
+    2. User grants consent on Google
+    3. Callback handles token exchange: `GET /auth/google/callback`
+    4. Tokens stored securely, linked to Clerk user ID
+    5. Create Google Docs: `POST /google/docs`
+
+    ## Security
+    - Tokens encrypted at rest using AES-256
+    - OAuth state parameter for CSRF protection
+    - Automatic token refresh before expiration
+    - HTTPS required in production
+
+  version: 1.0.0
+  contact:
+    name: VidSage API Support
+    email: support@vidsage.com
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:4000
+    description: Development server
+  - url: https://api.vidsage.com
+    description: Production server
+
+tags:
+  - name: OAuth
+    description: Google OAuth 2.0 authentication endpoints
+  - name: Google Docs
+    description: Google Docs creation and management
+  - name: Health
+    description: Service health and status
+
+paths:
+  /auth/google:
+    get:
+      tags:
+        - OAuth
+      summary: Initiate Google OAuth flow
+      description: |
+        Redirects the user to Google's OAuth consent screen to authorize access to Google Drive and Docs.
+
+        **Flow:**
+        1. Client calls this endpoint with userId
+        2. Server generates OAuth URL with state parameter
+        3. User is redirected to Google consent screen
+        4. After consent, Google redirects to callback endpoint
+
+        **State Parameter:**
+        Contains base64-encoded JSON with userId, timestamp, and nonce for CSRF protection.
+      operationId: initiateGoogleOAuth
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: Clerk user ID to link tokens with
+          schema:
+            type: string
+            example: user_2abcd1234xyz
+      responses:
+        "302":
+          description: Redirect to Google OAuth consent screen
+          headers:
+            Location:
+              schema:
+                type: string
+                example: https://accounts.google.com/o/oauth2/v2/auth?...
+        "400":
+          description: Bad request - missing userId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: Bad Request
+                message: userId is required
+
+  /auth/google/callback:
+    get:
+      tags:
+        - OAuth
+      summary: Google OAuth callback handler
+      description: |
+        Handles the OAuth callback from Google after user grants/denies consent.
+
+        **Success Flow:**
+        1. Receives authorization code from Google
+        2. Exchanges code for access_token and refresh_token
+        3. Encrypts and stores tokens in MongoDB
+        4. Links tokens to Clerk userId from state parameter
+        5. Redirects to frontend success page
+
+        **Error Flow:**
+        - User denies consent → redirect to error page
+        - Invalid code/state → redirect to error page
+
+        **Note:** This endpoint is called by Google, not directly by your frontend.
+      operationId: handleGoogleCallback
+      parameters:
+        - name: code
+          in: query
+          required: false
+          description: Authorization code from Google (present on success)
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          description: Base64-encoded state parameter containing userId
+          schema:
+            type: string
+        - name: error
+          in: query
+          required: false
+          description: Error code if user denied consent
+          schema:
+            type: string
+            enum: [access_denied]
+      responses:
+        "302":
+          description: Redirect to frontend success or error page
+          headers:
+            Location:
+              schema:
+                type: string
+                example: http://localhost:5173/oauth/success
+        "400":
+          description: Bad request - missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /google/status:
+    get:
+      tags:
+        - OAuth
+      summary: Check user's Google OAuth status
+      description: |
+        Check if a user has authorized Google access and token status.
+
+        **Use Cases:**
+        - Before showing "Connect Google" vs "Save to Google Docs" button
+        - Checking if re-authentication is needed
+        - Verifying token validity
+      operationId: getGoogleOAuthStatus
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: Clerk user ID
+          schema:
+            type: string
+            example: user_2abcd1234xyz
+      responses:
+        "200":
+          description: OAuth status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorized:
+                    type: boolean
+                    description: Whether user has authorized Google access
+                  hasRefreshToken:
+                    type: boolean
+                    description: Whether refresh token is available
+                  tokenExpired:
+                    type: boolean
+                    nullable: true
+                    description: Whether access token is expired (null if not authorized)
+              example:
+                authorized: true
+                hasRefreshToken: true
+                tokenExpired: false
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /google/revoke:
+    delete:
+      tags:
+        - OAuth
+      summary: Revoke Google OAuth access
+      description: |
+        Deletes stored tokens and revokes user's Google access.
+
+        **Use Cases:**
+        - User wants to disconnect Google account
+        - Privacy/security: remove stored credentials
+        - Reset OAuth connection
+
+        **Note:** User will need to re-authorize to use Google Docs features again.
+      operationId: revokeGoogleAccess
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: Clerk user ID
+            example:
+              userId: user_2abcd1234xyz
+      responses:
+        "200":
+          description: Access revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: Google access revoked successfully
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /google/docs:
+    post:
+      tags:
+        - Google Docs
+      summary: Create Google Doc with AI-generated content
+      description: |
+        Creates a new Google Doc in the user's Drive and writes content to it.
+
+        **Process:**
+        1. Validates user has authorized Google access
+        2. Checks if access token is expired
+        3. Auto-refreshes token if needed
+        4. Creates new Google Doc
+        5. Writes content using Google Docs API
+        6. Returns document ID and URL
+
+        **Features:**
+        - Automatic token refresh
+        - Optional folder placement
+        - Custom document title
+        - Returns shareable URL
+
+        **Requirements:**
+        - User must have completed OAuth flow
+        - Valid refresh token (for auto-renewal)
+      operationId: createGoogleDoc
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocRequest"
+      responses:
+        "201":
+          description: Document created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  document:
+                    $ref: "#/components/schemas/GoogleDocResponse"
+              example:
+                success: true
+                document:
+                  documentId: 1abc2def3ghi4jkl5mno6pqr
+                  documentUrl: https://docs.google.com/document/d/1abc2def3ghi4jkl5mno6pqr/edit
+                  title: AI Video Summary
+        "400":
+          description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - user needs to authenticate with Google
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "500":
+          description: Internal server error - failed to create document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /google/docs/list:
+    get:
+      tags:
+        - Google Docs
+      summary: List user's Google Docs
+      description: |
+        Retrieves a list of Google Docs created by this application.
+
+        **Features:**
+        - Paginated results
+        - Sorted by last modified (newest first)
+        - Only shows documents created by this app
+        - Automatic token refresh
+
+        **Scope:** Only returns documents created through `drive.file` scope,
+        not all user's documents.
+      operationId: listGoogleDocs
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: Clerk user ID
+          schema:
+            type: string
+            example: user_2abcd1234xyz
+        - name: pageSize
+          in: query
+          required: false
+          description: Number of documents to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  documents:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GoogleDocMetadata"
+              example:
+                success: true
+                documents:
+                  - id: 1abc2def3ghi4jkl5mno6pqr
+                    name: AI Video Summary
+                    webViewLink: https://docs.google.com/document/d/1abc.../edit
+                    createdTime: "2026-01-08T10:30:00.000Z"
+                    modifiedTime: "2026-01-08T10:35:00.000Z"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: |
+        Returns service health status and basic information.
+
+        **Use Cases:**
+        - Load balancer health checks
+        - Monitoring and alerting
+        - Service discovery
+        - Uptime verification
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  service:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: Server uptime in seconds
+              example:
+                status: healthy
+                service: VidSage User Management Service
+                timestamp: "2026-01-08T12:34:56.789Z"
+                uptime: 3600.5
+
+components:
+  schemas:
+    CreateDocRequest:
+      type: object
+      required:
+        - userId
+        - content
+      properties:
+        userId:
+          type: string
+          description: Clerk user ID
+          example: user_2abcd1234xyz
+        content:
+          type: string
+          description: Text content to write to the document
+          example: |
+            # Video Summary
+
+            This is an AI-generated summary of the video content...
+        title:
+          type: string
+          description: Document title (optional)
+          default: AI Generated Summary
+          example: AI Video Summary
+        folderId:
+          type: string
+          description: Google Drive folder ID to create document in (optional)
+          example: 1a2b3c4d5e6f7g8h9i0j
+
+    GoogleDocResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+          description: Unique Google Docs document ID
+          example: 1abc2def3ghi4jkl5mno6pqr
+        documentUrl:
+          type: string
+          format: uri
+          description: Shareable URL to view/edit the document
+          example: https://docs.google.com/document/d/1abc2def3ghi4jkl5mno6pqr/edit
+        title:
+          type: string
+          description: Document title
+          example: AI Video Summary
+
+    GoogleDocMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Document ID
+        name:
+          type: string
+          description: Document name/title
+        webViewLink:
+          type: string
+          format: uri
+          description: URL to view the document
+        createdTime:
+          type: string
+          format: date-time
+          description: When the document was created
+        modifiedTime:
+          type: string
+          format: date-time
+          description: Last modification time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: Bad Request
+        message:
+          type: string
+          description: Human-readable error message
+          example: userId and content are required
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 400
+        details:
+          type: object
+          description: Additional error details (development only)
+          nullable: true
+
+    UnauthorizedResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+        message:
+          type: string
+          example: User has not authorized Google access. Please authenticate first.
+        requiresAuth:
+          type: boolean
+          description: Indicates client should redirect to OAuth flow
+          example: true
+
+  securitySchemes:
+    ClerkAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Clerk session token for user authentication.
+
+        **Format:** `Bearer <clerk_session_token>`
+
+        **Note:** Currently, userId is passed in request body/query.
+        In production, implement Clerk token verification middleware.
+
+security:
+  - ClerkAuth: []
+
+externalDocs:
+  description: Full API Documentation and Setup Guide
+  url: https://github.com/vidsage/apps/blob/main/backend/usermng/README.md

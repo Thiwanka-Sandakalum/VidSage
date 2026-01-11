@@ -42,7 +42,8 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
         if os.path.exists(cookies_path):
             try:
                 with open(cookies_path, 'r') as f:
-                    logger.info(f"✅ cookies.txt found and readable. First 100 chars: {f.read(100)}")
+                    content = f.read()
+                    logger.info(f"✅ cookies.txt found and readable. Full content:\n{content}")
             except Exception as e:
                 logger.error(f"❌ cookies.txt exists but could not be read: {e}")
         else:

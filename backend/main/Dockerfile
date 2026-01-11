@@ -21,10 +21,12 @@ RUN pip install --no-cache-dir playwright
 COPY --from=builder /usr/local /usr/local
 COPY . .
 
+
 RUN useradd -m appuser && chown -R appuser /app
-USER appuser
 
 RUN playwright install --with-deps chromium
+
+USER appuser
 
 EXPOSE 8000
 

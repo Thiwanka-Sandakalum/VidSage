@@ -48,7 +48,7 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
                 'writeautomaticsub': True,
                 'subtitleslangs': languages,
                 'subtitlesformat': 'srt',
-                'cookies': '/home/thiwa/Documents/projects/VidSage/backend/main/cookies/cookies.txt',  # Local absolute path to cookies.txt
+                'cookies': '/app/cookies/cookies.txt',  # Path for Azure Container App
                 'outtmpl': str(temp_path / video_id),
                 'quiet': True,
                 'no_warnings': True,

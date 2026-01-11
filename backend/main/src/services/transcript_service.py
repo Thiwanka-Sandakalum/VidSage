@@ -37,6 +37,16 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
     url = f"https://www.youtube.com/watch?v={video_id}"
     
     try:
+        # Check if cookies file exists and is readable
+        cookies_path = '/app/cookies/cookies.txt'
+        if os.path.exists(cookies_path):
+            try:
+                with open(cookies_path, 'r') as f:
+                    logger.info(f"✅ cookies.txt found and readable. First 100 chars: {f.read(100)}")
+            except Exception as e:
+                logger.error(f"❌ cookies.txt exists but could not be read: {e}")
+        else:
+            logger.error(f"❌ cookies.txt not found at {cookies_path}")
         # Create temporary directory for subtitle files
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

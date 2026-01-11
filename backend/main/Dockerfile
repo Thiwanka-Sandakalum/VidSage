@@ -24,9 +24,12 @@ COPY . .
 
 RUN useradd -m appuser && chown -R appuser /app
 
-RUN playwright install --with-deps chromium
+
+
 
 USER appuser
+
+RUN playwright install chromium
 
 EXPOSE 8000
 

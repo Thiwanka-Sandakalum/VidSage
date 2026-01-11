@@ -14,35 +14,40 @@ WORKDIR /app
 
 RUN apt-get update --no-install-suggests --no-install-recommends && \
     apt-get install -y --no-install-recommends \
-        libpq-dev \
-        curl \
-        libglib2.0-0 \
         libnss3 \
-        libgdk-pixbuf2.0-0 \
+        libatk-bridge2.0-0 \
+        libatk1.0-0 \
+        libcups2 \
+        libdbus-1-3 \
+        libdrm2 \
+        libgbm1 \
         libgtk-3-0 \
-        libasound2 \
+        libnspr4 \
         libx11-xcb1 \
         libxcomposite1 \
         libxdamage1 \
         libxrandr2 \
-        libgbm1 \
-        libpango-1.0-0 \
-        libcairo2 \
-        libatspi2.0-0 \
-        libdrm2 \
-        libxfixes3 \
-        libxext6 \
+        xdg-utils \
+        libasound2 \
         libxshmfence1 \
-        libxrender1 \
-        libx11-6 \
+        libxss1 \
         libxtst6 \
-        libpci3 \
+        fonts-liberation \
+        libappindicator3-1 \
+        libatspi2.0-0 \
+        libcurl4 \
         libwayland-client0 \
         libwayland-cursor0 \
         libwayland-egl1 \
-        libcups2 \
         libxkbcommon0 \
-        libxss1 \
+        libpango-1.0-0 \
+        libxrender1 \
+        libxext6 \
+        libxfixes3 \
+        libpci3 \
+        libgdk-pixbuf2.0-0 \
+        libglib2.0-0 \
+        libcairo2 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir playwright

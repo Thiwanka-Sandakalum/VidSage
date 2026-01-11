@@ -13,3 +13,4 @@ backend/tool-integration/.env.test
 Apps/client/public/config.js
 client/public/config.js
 client/public/config.js
+backend/main/cookies/cookies.txt

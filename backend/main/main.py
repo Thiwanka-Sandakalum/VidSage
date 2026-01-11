@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from src.core.config import get_settings
 from src.core.exceptions import VidSageException
 from src.infrastructure.database.mongodb import init_mongodb, close_mongodb
+# Ensure YouTube cookies are fetched at startup
+from src.services.fetch_youtube_cookies import ensure_youtube_cookies
 from src.api.middleware.error_handler import (
     vidsage_exception_handler,
     validation_exception_handler,
@@ -43,10 +45,13 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     
     try:
+        # Fetch YouTube cookies before anything else
+        logger.info("Fetching YouTube cookies...")
+        await ensure_youtube_cookies()
+        logger.info("YouTube cookies fetched and saved.")
         # Initialize MongoDB
         init_mongodb(settings)
         logger.info("MongoDB initialized successfully")
-        
     except Exception as e:
         logger.error(f"Startup failed: {str(e)}")
         raise

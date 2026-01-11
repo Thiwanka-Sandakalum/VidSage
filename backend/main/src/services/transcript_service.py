@@ -37,21 +37,21 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
     url = f"https://www.youtube.com/watch?v={video_id}"
     
     try:
-        # Check if cookies file exists and is readable
-        cookies_path = '/app/cookies/cookies.txt'
-        if os.path.exists(cookies_path):
+        # Use the correct local cookie file path
+        cookie_file = Path(__file__).parent / "../cookies/cookie.txt"
+        cookie_file = cookie_file.resolve()
+        if os.path.exists(cookie_file):
             try:
-                with open(cookies_path, 'r') as f:
+                with open(cookie_file, 'r') as f:
                     content = f.read()
                     logger.info(f"✅ cookies.txt found and readable. Full content:\n{content}")
             except Exception as e:
                 logger.error(f"❌ cookies.txt exists but could not be read: {e}")
         else:
-            logger.error(f"❌ cookies.txt not found at {cookies_path}")
+            logger.error(f"❌ cookies.txt not found at {cookie_file}")
         # Create temporary directory for subtitle files
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            
             # Configure yt-dlp to download subtitles with anti-bot measures
             ydl_opts = {
                 'skip_download': True,
@@ -59,7 +59,7 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
                 'writeautomaticsub': True,
                 'subtitleslangs': languages,
                 'subtitlesformat': 'srt',
-                'cookies': '/app/cookies/cookies.txt',  # Path for Azure Container App
+                'cookies': str(cookie_file),
                 'outtmpl': str(temp_path / video_id),
                 'quiet': True,
                 'no_warnings': True,
@@ -84,65 +84,48 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
                 'sleep_interval': 1,
                 'max_sleep_interval': 3,
             }
-            
             # Check for cookie file from environment variable
-            cookie_file = os.environ.get('YOUTUBE_COOKIES_FILE')
-            if cookie_file and os.path.exists(cookie_file):
-                logger.info(f"Using cookie file: {cookie_file}")
-                ydl_opts['cookiefile'] = cookie_file
-            
+            env_cookie_file = os.environ.get('YOUTUBE_COOKIES_FILE')
+            if env_cookie_file and os.path.exists(env_cookie_file):
+                logger.info(f"Using cookie file from env: {env_cookie_file}")
+                ydl_opts['cookiefile'] = env_cookie_file
             # Check for cookies from browser option
             cookies_from_browser = os.environ.get('YOUTUBE_COOKIES_BROWSER')
             if cookies_from_browser:
                 logger.info(f"Using cookies from browser: {cookies_from_browser}")
                 ydl_opts['cookiesfrombrowser'] = (cookies_from_browser,)
-            
             # Get video info and download subtitles
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
-                
                 if not info_dict:
                     raise TranscriptError(f"Could not retrieve video info for: {video_id}")
-                
                 # Check for available subtitles
                 subtitles = info_dict.get('subtitles', {})
                 automatic_captions = info_dict.get('automatic_captions', {})
-                
                 has_manual = any(lang in subtitles for lang in languages)
                 has_auto = any(lang in automatic_captions for lang in languages)
-                
                 if not (has_manual or has_auto):
                     available_langs = list(subtitles.keys()) + list(automatic_captions.keys())
                     raise TranscriptError(
                         f"No subtitles available in {languages}. Available: {available_langs}"
                     )
-                
                 logger.info(f"Downloading subtitles (manual: {has_manual}, auto: {has_auto})")
-                
                 # Download the subtitles
                 ydl.download([url])
-            
             # Find and read the subtitle file
             subtitle_files = list(temp_path.glob(f"{video_id}*.srt"))
-            
             if not subtitle_files:
                 raise TranscriptError(f"Subtitle file not found after download for: {video_id}")
-            
             # Use the first available subtitle file
             subtitle_path = subtitle_files[0]
             logger.info(f"Reading subtitle file: {subtitle_path.name}")
-            
             with open(subtitle_path, 'r', encoding='utf-8') as f:
                 subtitle_content = f.read()
-            
             # Extract plain text from SRT format
             transcript_text = extract_subtitle_text(subtitle_content)
-            
             if not transcript_text or transcript_text.strip() == "":
                 raise TranscriptError("Transcript is empty after extraction")
-            
             return transcript_text.strip()
-            
     except TranscriptError:
         raise
     except Exception as e:

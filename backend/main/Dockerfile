@@ -18,8 +18,12 @@ WORKDIR /app
 
 # Install runtime dependencies only (if any)
 RUN apt-get update --no-install-suggests --no-install-recommends && \
-    apt-get install -y --no-install-recommends libpq-dev && \
+    apt-get install -y --no-install-recommends libpq-dev curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Playwright and browsers
+RUN pip install --no-cache-dir playwright && \
+    playwright install --with-deps chromium
 
 
 # Copy installed Python packages and binaries from builder

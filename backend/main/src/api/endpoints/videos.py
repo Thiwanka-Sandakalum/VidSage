@@ -59,7 +59,8 @@ async def process_video(
                 return ProcessVideoResponse(
                     video_id=video_id,
                     status="already_processed",
-                    chunks_count=video_info["chunks_count"]
+                    chunks_count=video_info["chunks_count"],
+                    disclaimer=disclaimer
                 )
 
         try:
@@ -84,11 +85,15 @@ async def process_video(
                 return ProcessVideoResponse(
                     video_id=video_id,
                     status="already_processed",
-                    chunks_count=video_info["chunks_count"],
-                    disclaimer=disclaimer
+                    chunks_count=video_info["chunks_count"]
                 )
-            # If not found, raise error
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=disclaimer)
+            # If not found, return a 200 with status and disclaimer (no error)
+            return ProcessVideoResponse(
+                video_id=video_id,
+                status="transcript_unavailable",
+                chunks_count=0,
+                disclaimer=disclaimer
+            )
 
         # If transcript fetch succeeded, continue as normal
         chunks = chunk_service.chunk_text(text=transcript_text, chunk_size=500, chunk_overlap=100)

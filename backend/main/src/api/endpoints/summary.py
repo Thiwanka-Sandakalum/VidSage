@@ -30,7 +30,7 @@ async def get_video_summary(
     video_metadata = mongodb_manager.get_video_metadata(video_id)
     if not video_metadata:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found.")
-    if user_id not in video_metadata.get("users", []):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have access to this video.")
+    # if user_id not in video_metadata.get("users", []):
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have access to this video.")
     summary = video_metadata.get("summary", "No summary available.")
     return {"video_id": video_id, "summary": summary}

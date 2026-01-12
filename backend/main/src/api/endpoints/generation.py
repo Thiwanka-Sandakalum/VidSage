@@ -62,11 +62,11 @@ async def generate_answer(
             )
         
         # Check if user has access
-        if not mongodb_manager.user_has_video(user_id, request.video_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this video."
-            )
+        # if not mongodb_manager.user_has_video(user_id, request.video_id):
+        #     raise HTTPException(
+        #         status_code=status.HTTP_403_FORBIDDEN,
+        #         detail="You don't have access to this video."
+        #     )
         
         # Search for relevant chunks
         search_results = mongodb_manager.search_video(

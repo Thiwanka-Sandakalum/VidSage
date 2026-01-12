@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from typing import List, Dict, Optional
 import yt_dlp
+
+from src.core.exceptions import TranscriptError
 import logging
 
 # Configure logging
@@ -12,9 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TranscriptError(Exception):
-    """Custom exception for transcript-related errors."""
-    pass
+
 
 
 def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> str:
@@ -102,11 +102,9 @@ def fetch_transcript(video_id: str, languages: Optional[List[str]] = None) -> st
             if not transcript_text or transcript_text.strip() == "":
                 raise TranscriptError("Transcript is empty after extraction")
             return transcript_text.strip()
-    except TranscriptError:
-        raise
     except Exception as e:
         logger.error(f"Error fetching transcript: {str(e)}")
-        raise TranscriptError(f"Failed to fetch transcript for {video_id}: {str(e)}")
+        raise TranscriptError(f"Failed to fetch transcript: {str(e)}")
 
 
 def extract_subtitle_text(subtitle_content: str) -> str:

@@ -34,8 +34,8 @@ async def save_summary_to_doc(
     video_metadata = mongodb_manager.get_video_metadata(request.video_id)
     if not video_metadata:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found.")
-    if user_id not in video_metadata.get("users", []):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have access to this video.")
+    # if user_id not in video_metadata.get("users", []):
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have access to this video.")
     summary = video_metadata.get("summary", "No summary available.")
     title = video_metadata.get("title", f"Video {request.video_id}")
     # Call tool API to create Google Doc (per OpenAPI: POST /google/docs)
@@ -77,7 +77,11 @@ async def get_summary_doc_link(
     if not video_metadata:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found.")
     if user_id not in video_metadata.get("users", []):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have access to this video.")
+        return {
+                "video_id": video_id,
+                "exists": False,
+                "doc_link": None,
+            }
     title = video_metadata.get("title", f"Video {video_id}")
     # Call tool API to list Google Docs (GET, userId as query param)
     tool_api_url = f"{os.getenv('TOOL_INTEGRATION_URL', 'http://localhost:4000')}/google/docs/list"

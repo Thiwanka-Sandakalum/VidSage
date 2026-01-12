@@ -49,49 +49,48 @@ async def process_video(
             "This is a portfolio demo. Displaying locally embedded example data for already processed videos."
         )
 
-        # Check if already processed
-        if mongodb_manager.video_exists(video_id):
-            videos = mongodb_manager.list_videos(user_id=None, limit=1)
-            video_info = next((v for v in videos if v.get("video_id") == video_id), None)
-            if video_info:
-                # Add user if not already added
-                if user_id not in video_info.get("users", []):
-                    mongodb_manager.videos_collection.update_one(
-                        {"video_id": video_id},
-                        {"$addToSet": {"users": user_id}}
-                    )
-                return ProcessVideoResponse(
-                    video_id=video_id,
-                    status="already_processed",
-                    chunks_count=video_info["chunks_count"],
-                    disclaimer=disclaimer
+        # Check if already processed (global, not user-specific)
+        video_info = mongodb_manager.get_video_metadata(video_id)
+        if video_info:
+            # Add user if not already added
+            if user_id not in video_info.get("users", []):
+                mongodb_manager.videos_collection.update_one(
+                    {"video_id": video_id},
+                    {"$addToSet": {"users": user_id}}
                 )
+            return ProcessVideoResponse(
+                video_id=video_id,
+                status="already_processed",
+                chunks_count=video_info["chunks_count"],
+                disclaimer=disclaimer
+            )
 
         try:
             # Try to fetch transcript
             transcript_text = transcript_service.fetch_transcript(video_id)
         except TranscriptError as e:
-            # Fallback: show already processed video data if available
-            videos = mongodb_manager.list_videos(user_id=None, limit=1)
-            video_info = next((v for v in videos if v.get("video_id") == video_id), None)
+            # Fallback: always return DB data as 'completed' with disclaimer if exists (global, not user-specific)
+            video_info = mongodb_manager.get_video_metadata(video_id)
             if video_info:
-                # Add user if not already added
                 if user_id not in video_info.get("users", []):
                     mongodb_manager.videos_collection.update_one(
                         {"video_id": video_id},
                         {"$addToSet": {"users": user_id}}
                     )
-                # Return with disclaimer
                 return ProcessVideoResponse(
                     video_id=video_id,
-                    status="already_processed",
+                    status="completed",
                     chunks_count=video_info["chunks_count"],
                     disclaimer=disclaimer
                 )
-            # If not found, return a 200 with status and disclaimer (no error)
+            # If not found, simulate a successful response with disclaimer and 0 chunks, using a random video_id from DB if available
+            videos = mongodb_manager.list_videos()
+            random_video_id = video_id
+            if videos:
+                random_video_id = videos[0].get("video_id", video_id)
             return ProcessVideoResponse(
-                video_id=video_id,
-                status="transcript_unavailable",
+                video_id=random_video_id,
+                status="completed",
                 chunks_count=0,
                 disclaimer=disclaimer
             )
@@ -178,6 +177,9 @@ async def list_videos(
     """
     try:
         videos_data = mongodb_manager.list_videos(user_id=user_id)
+        # If user has no videos, return all videos (no user_id filtering)
+        if not videos_data:
+            videos_data = mongodb_manager.list_videos()
         videos = [
             VideoMetadata(
                 video_id=v["video_id"],

@@ -44,7 +44,7 @@ async def process_video(
     """
     try:
         video_id = helpers.extract_video_id(request.url)
-        
+
         # Check if already processed
         if mongodb_manager.video_exists(video_id):
             videos = mongodb_manager.list_videos(user_id=None, limit=1)
@@ -61,13 +61,37 @@ async def process_video(
                     status="already_processed",
                     chunks_count=video_info["chunks_count"]
                 )
-        
-        # Fetch transcript
-        transcript_text = transcript_service.fetch_transcript(video_id)
-        
-        # Create chunks
+
+        try:
+            # Try to fetch transcript
+            transcript_text = transcript_service.fetch_transcript(video_id)
+        except TranscriptError as e:
+            # Fallback: show already processed video data if available
+            videos = mongodb_manager.list_videos(user_id=None, limit=1)
+            video_info = next((v for v in videos if v.get("video_id") == video_id), None)
+            disclaimer = (
+                "⚠️ Unable to fetch YouTube transcript due to platform restrictions. "
+                "This is a portfolio demo. Displaying locally embedded example data for already processed videos."
+            )
+            if video_info:
+                # Add user if not already added
+                if user_id not in video_info.get("users", []):
+                    mongodb_manager.videos_collection.update_one(
+                        {"video_id": video_id},
+                        {"$addToSet": {"users": user_id}}
+                    )
+                # Return with disclaimer
+                return ProcessVideoResponse(
+                    video_id=video_id,
+                    status="already_processed",
+                    chunks_count=video_info["chunks_count"],
+                    disclaimer=disclaimer
+                )
+            # If not found, raise error
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=disclaimer)
+
+        # If transcript fetch succeeded, continue as normal
         chunks = chunk_service.chunk_text(text=transcript_text, chunk_size=500, chunk_overlap=100)
-        
 
         # Generate suggested questions
         logger.info(f"Generating suggested questions for video {video_id}")
@@ -113,11 +137,9 @@ async def process_video(
             status="completed",
             chunks_count=result["chunks_count"]
         )
-        
+
     except InvalidYouTubeURLError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except TranscriptError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Transcript error: {str(e)}")
     except ChunkingError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Chunking error: {str(e)}")
     except Exception as e:

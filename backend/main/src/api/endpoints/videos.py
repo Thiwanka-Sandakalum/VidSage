@@ -44,6 +44,10 @@ async def process_video(
     """
     try:
         video_id = helpers.extract_video_id(request.url)
+        disclaimer = (
+            "⚠️ Unable to fetch YouTube transcript due to platform restrictions. "
+            "This is a portfolio demo. Displaying locally embedded example data for already processed videos."
+        )
 
         # Check if already processed
         if mongodb_manager.video_exists(video_id):
@@ -70,10 +74,6 @@ async def process_video(
             # Fallback: show already processed video data if available
             videos = mongodb_manager.list_videos(user_id=None, limit=1)
             video_info = next((v for v in videos if v.get("video_id") == video_id), None)
-            disclaimer = (
-                "⚠️ Unable to fetch YouTube transcript due to platform restrictions. "
-                "This is a portfolio demo. Displaying locally embedded example data for already processed videos."
-            )
             if video_info:
                 # Add user if not already added
                 if user_id not in video_info.get("users", []):
@@ -85,7 +85,8 @@ async def process_video(
                 return ProcessVideoResponse(
                     video_id=video_id,
                     status="already_processed",
-                    chunks_count=video_info["chunks_count"]
+                    chunks_count=video_info["chunks_count"],
+                    disclaimer=disclaimer
                 )
             # If not found, return a 200 with status and disclaimer (no error)
             return ProcessVideoResponse(

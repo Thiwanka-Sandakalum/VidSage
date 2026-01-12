@@ -18,6 +18,7 @@ class ProcessVideoResponse(BaseModel):
     video_id: str
     status: str
     chunks_count: int
+    disclaimer: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

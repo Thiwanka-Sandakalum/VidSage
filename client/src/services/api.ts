@@ -39,6 +39,9 @@ export const api = {
                 url: videoUrl
             });
 
+            // Store last process result globally for disclaimer notification
+            (window as any).lastProcessVideoResult = response;
+
             // Fetch full video details after processing
             const videos = await VideosService.listVideosVideosGet();
             const video = videos.videos?.find(v => v.video_id === response.video_id);

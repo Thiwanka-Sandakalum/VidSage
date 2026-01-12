@@ -35,10 +35,10 @@ const Home: React.FC = () => {
 
   const onSubmit = (data: VideoFormData) => {
     dispatch(resetVideoState());
-    dispatch(processVideo(data.url)).then((result) => {
-      if (processVideo.fulfilled.match(result)) {
+    dispatch(processVideo(data.url)).then((result: any) => {
+      reset();
+      if (result && result.payload && result.payload.video && result.payload.video.id) {
         navigate(`/video/${result.payload.video.id}`);
-        reset();
       }
     });
   };

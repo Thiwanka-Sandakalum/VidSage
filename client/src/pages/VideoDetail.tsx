@@ -148,8 +148,21 @@ const VideoDetail: React.FC = () => {
   const connectedTools = integrations.filter(t => t.isConnected);
 
   // Load video from history if not in state
+  // Show disclaimer notification if present in processVideo response
   useEffect(() => {
     if (id && !currentVideo) {
+      // Check if disclaimer is present in last processVideo response
+      const lastProcessResult = (window as any).lastProcessVideoResult;
+      if (lastProcessResult && lastProcessResult.disclaimer) {
+        notifications.show({
+          title: 'YouTube Transcript Restriction',
+          message: lastProcessResult.disclaimer,
+          color: 'yellow',
+          autoClose: 10000,
+        });
+        // Remove disclaimer after showing
+        (window as any).lastProcessVideoResult = undefined;
+      }
       // Check if video exists in history
       const { history } = store.getState().video;
       const videoInHistory = history.find(v => v.id === id);

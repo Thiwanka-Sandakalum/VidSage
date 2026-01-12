@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { api } from '../../services/api';
-import { ProcessStatus, VideoState } from '../../types/types';
+import { ProcessStatus, VideoMetadata, VideoState } from '../../types/types';
 
 const initialState: VideoState = {
   currentVideo: null,

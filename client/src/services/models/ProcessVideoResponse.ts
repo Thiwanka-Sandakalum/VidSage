@@ -6,5 +6,6 @@ export type ProcessVideoResponse = {
     video_id: string;
     status: string;
     chunks_count: number;
+    disclaimer?: string;
 };
 
